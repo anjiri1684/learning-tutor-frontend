@@ -2,9 +2,8 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
 })
-
 
 api.interceptors.request.use(
   (config) => {
@@ -14,16 +13,11 @@ api.interceptors.request.use(
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  },
+  (error) => Promise.reject(error),
 )
 
-
 api.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
       const authStore = useAuthStore()
