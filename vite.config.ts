@@ -5,26 +5,25 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-  ],
+  plugins: [vue(), vueDevTools()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {
     proxy: {
       '/api/v1': {
-        target: 'https://learning-tutor-backend-ibvq.onrender.com',
+        // target: 'https://learning-tutor-backend-ibvq.onrender.com',
+        target: 'http://localhost:8080',
         ws: true,
         changeOrigin: true,
       },
       '/api': {
-        target: 'https://learning-tutor-backend-ibvq.onrender.com',
+        // target: 'https://learning-tutor-backend-ibvq.onrender.com',
+        target: 'http://localhost:8080',
         changeOrigin: true,
-      }
-    }
-  }
+      },
+    },
+  },
 })

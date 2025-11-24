@@ -34,7 +34,7 @@ const priceInKES = computed(() => {
 // --- Lifecycle & Methods ---
 onMounted(() => {
   if (!bookingStore.selectedSlot) {
-    router.push('/find-teachers');
+    router.push('/dashboard/find-teachers');
   }
 });
 
