@@ -14,14 +14,14 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/v1': {
-        // target: 'https://learning-tutor-backend-ibvq.onrender.com',
-        target: 'http://localhost:8080',
+        target: 'https://learning-tutor-backend-qmis.onrender.com',
+        // target: 'http://localhost:8080',
         ws: true,
         changeOrigin: true,
       },
       '/api': {
-        // target: 'https://learning-tutor-backend-ibvq.onrender.com',
-        target: 'http://localhost:8080',
+        target: 'https://learning-tutor-backend-qmis.onrender.com',
+        // target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },
