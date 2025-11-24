@@ -65,8 +65,8 @@ const testimonials = [
       <nav class="flex items-center justify-between p-4 lg:px-8 max-w-7xl mx-auto" aria-label="Global">
         <div class="flex lg:flex-1">
           <a href="#" class="-m-1.5 p-1.5 flex items-center gap-2">
-            <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">L</div>
-            <span class="text-xl font-bold tracking-tight text-gray-900">LanguageTutor</span>
+            <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">PYH</div>
+            <span class="text-xl font-bold tracking-tight text-gray-900">PYH International Language learning</span>
           </a>
         </div>
         <div class="flex lg:hidden">
