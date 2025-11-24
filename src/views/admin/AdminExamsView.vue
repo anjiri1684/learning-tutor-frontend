@@ -3,7 +3,6 @@
 import { ref, onMounted } from 'vue';
 import api from '@/services/api';
 
-// --- Interfaces ---
 interface Question {
   ID: string;
   question_text?: string;
@@ -23,22 +22,18 @@ interface TestForm extends Partial<MockTest> {
   QuestionIDs: string[];
 }
 
-// --- Component State ---
 const activeTab = ref('questions');
 const questions = ref<Question[]>([]);
 const tests = ref<MockTest[]>([]);
 const isLoading = ref(true);
 
-// Modal State
 const showQuestionModal = ref(false);
 const showTestModal = ref(false);
 const isEditing = ref(false);
 
-// Form Data
 const currentQuestion = ref<Partial<Question>>({});
 const currentTest = ref<TestForm>({ QuestionIDs: [] });
 
-// --- Data Fetching ---
 const fetchData = async () => {
   isLoading.value = true;
   try {
@@ -46,7 +41,6 @@ const fetchData = async () => {
       api.get('/admin/exams/questions'),
       api.get('/admin/exams/tests'),
     ]);
-    // Map backend response to match Question interface
     questions.value = questionsRes.data.map((q: any) => ({
       ID: q.ID,
       question_text: q.QuestionText,
@@ -63,7 +57,6 @@ const fetchData = async () => {
 };
 onMounted(fetchData);
 
-// --- Question Methods ---
 const openAddQuestionModal = () => {
   isEditing.value = false;
   currentQuestion.value = { question_type: 'multiple_choice', options: '[]' };
@@ -75,7 +68,6 @@ const openEditQuestionModal = (q: Question) => {
   showQuestionModal.value = true;
 };
 const handleSaveQuestion = async () => {
-  // Map frontend question to backend format
   const payload = {
     ID: currentQuestion.value.ID,
     QuestionText: currentQuestion.value.question_text,
@@ -103,7 +95,6 @@ const handleDeleteQuestion = async (id: string) => {
   }
 };
 
-// --- Test Methods ---
 const openAddTestModal = () => {
   isEditing.value = false;
   currentTest.value = { Title: '', Description: '', DurationMinutes: 10, QuestionIDs: [] };

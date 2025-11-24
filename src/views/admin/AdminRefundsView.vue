@@ -36,7 +36,7 @@ const handleProcess = async () => {
   try {
     await api.post(`/admin/refund-requests/${selectedRequest.value.ID}/process`, processForm.value);
     showModal.value = false;
-    await fetchRequests(); // Refresh the list
+    await fetchRequests();
   } catch (error) {
     console.error('Failed to process refund:', error);
     alert('Failed to process refund request.');

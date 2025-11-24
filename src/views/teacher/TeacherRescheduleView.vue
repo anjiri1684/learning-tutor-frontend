@@ -37,7 +37,6 @@ onMounted(fetchRequests);
 const handleDecision = async (bookingId: string, decision: 'approve' | 'reject') => {
   try {
     await api.post(`/teacher/reschedule-requests/${bookingId}/process`, { decision });
-    // Refresh the list after processing
     await fetchRequests();
   } catch (error) {
     console.error(`Failed to ${decision} request:`, error);

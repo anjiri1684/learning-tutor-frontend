@@ -2,7 +2,6 @@
 import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
 
-// --- Interfaces ---
 interface Booking {
   ID: string;
   status: string;
@@ -16,12 +15,10 @@ interface Resource {
   file_url: string;
 }
 
-// --- Component State ---
 const bookings = ref<Booking[]>([]);
 const isLoading = ref(true);
 const actionMessage = ref({ type: '', text: '' });
 
-// State for modals
 const showReviewModal = ref(false);
 const showRefundModal = ref(false);
 const showRescheduleModal = ref(false);
@@ -30,12 +27,10 @@ const isLoadingResources = ref(false);
 const selectedBooking = ref<Booking | null>(null);
 const selectedBookingResources = ref<Resource[]>([]);
 
-// Form data
 const reviewData = ref({ rating: 5, comment: '' });
 const refundReason = ref('');
 const rescheduleData = ref({ new_start_time: '', new_end_time: '' });
 
-// --- Data Fetching & Helpers ---
 onMounted(async () => { await fetchBookings(); });
 
 const fetchBookings = async () => {
@@ -56,7 +51,6 @@ const toDateTimeLocal = (dateString: string) => {
   return date.toISOString().slice(0, 16);
 };
 
-// --- Computed Properties ---
 const upcomingClasses = computed(() =>
   bookings.value.filter(b => b.availability_slot && new Date(b.availability_slot.start_time) >= new Date() && (b.status === 'confirmed' || b.status === 'reschedule_requested'))
 );
@@ -64,7 +58,6 @@ const pastClasses = computed(() =>
   bookings.value.filter(b => b.availability_slot && (new Date(b.availability_slot.start_time) < new Date() || ['completed', 'cancelled', 'unattended'].includes(b.status)))
 );
 
-// --- Modal Control ---
 const openReviewModal = (booking: Booking) => {
   selectedBooking.value = booking;
   reviewData.value = { rating: 5, comment: '' };
@@ -92,7 +85,6 @@ const openResourcesModal = async (booking: Booking) => {
   }
 };
 
-// --- API Submissions ---
 const submitReview = async () => {
   if (!selectedBooking.value) return;
   await api.post(`/bookings/${selectedBooking.value.ID}/review`, reviewData.value);

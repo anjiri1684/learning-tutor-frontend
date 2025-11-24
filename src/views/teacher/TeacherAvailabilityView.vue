@@ -2,7 +2,6 @@
 import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
 
-// --- Interfaces ---
 interface Language { ID: string; name: string; }
 interface AvailabilitySlot {
   ID: string;
@@ -13,7 +12,6 @@ interface AvailabilitySlot {
   current_students: number;
 }
 
-// --- Component State ---
 const slots = ref<AvailabilitySlot[]>([]);
 const languages = ref<Language[]>([]);
 const isLoading = ref(true);
@@ -22,10 +20,9 @@ const newSlot = ref({
   start_time: '',
   end_time: '',
   language_id: '',
-  max_students: 1, // Default to 1 for private class
+  max_students: 1,
 });
 
-// --- Data Fetching ---
 const fetchData = async () => {
   isLoading.value = true;
   try {
@@ -44,24 +41,22 @@ const fetchData = async () => {
 
 onMounted(fetchData);
 
-// --- Computed Properties ---
 const upcomingSlots = computed(() =>
   slots.value.filter(s => new Date(s.start_time) >= new Date()).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
 );
 
-// --- Methods ---
 const handleAddSlot = async () => {
   try {
     const payload = {
       start_time: new Date(newSlot.value.start_time).toISOString(),
       end_time: new Date(newSlot.value.end_time).toISOString(),
       language_id: newSlot.value.language_id,
-      max_students: Number(newSlot.value.max_students), // Include max_students
+      max_students: Number(newSlot.value.max_students),
     };
     await api.post('/teacher/availability', payload);
     showAddModal.value = false;
-    newSlot.value = { start_time: '', end_time: '', language_id: '', max_students: 1}; // Reset form
-    await fetchData(); // Refresh the list
+    newSlot.value = { start_time: '', end_time: '', language_id: '', max_students: 1 };
+    await fetchData();
   } catch (error) {
     console.error('Failed to add slot:', error);
     alert('Failed to add slot. Please check the times and try again.');
@@ -72,7 +67,7 @@ const handleDeleteSlot = async (slotId: string) => {
   if (confirm('Are you sure you want to delete this available slot? This cannot be undone.')) {
     try {
       await api.delete(`/teacher/availability/${slotId}`);
-      await fetchData(); // Refresh the list
+      await fetchData();
     } catch (error) {
       console.error('Failed to delete slot:', error);
       alert('Failed to delete slot. It might already be booked.');

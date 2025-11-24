@@ -3,7 +3,6 @@ import { ref, onMounted, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import api from '@/services/api';
 
-// --- Interfaces ---
 interface Language {
   ID: string;
   Name: string;
@@ -19,7 +18,6 @@ interface Teacher {
   languages: Language[];
 }
 
-// --- Component State ---
 const teachers = ref<Teacher[]>([]);
 const languages = ref<Language[]>([]);
 const isLoading = ref(true);
@@ -28,7 +26,6 @@ const filters = ref({
   min_rating: '0',
 });
 
-// --- Data Fetching ---
 const fetchTeachers = async () => {
   isLoading.value = true;
   try {

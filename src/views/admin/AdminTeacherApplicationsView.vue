@@ -23,7 +23,6 @@ onMounted(fetchApplications);
 const handleDecision = async (teacherId: string, decision: 'active' | 'rejected') => {
   try {
     await api.put(`/admin/applications/${teacherId}`, { status: decision });
-    // Refresh the list after processing
     await fetchApplications();
   } catch (error) {
     console.error(`Failed to ${decision} application:`, error);

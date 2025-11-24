@@ -37,7 +37,7 @@ const handleProcess = async () => {
   try {
     await api.post(`/admin/payout-requests/${selectedRequest.value.ID}/process`, processForm.value);
     showModal.value = false;
-    await fetchRequests(); // Refresh the list
+    await fetchRequests(); 
   } catch (error) {
     console.error('Failed to process payout:', error);
     alert('Failed to process payout request.');

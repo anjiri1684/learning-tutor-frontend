@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useBookingStore } from '@/stores/booking';
 import api from '@/services/api';
 
-// --- Interfaces for our data shapes ---
 interface TeacherProfile {
   user_id: string;
   headline: string;
@@ -26,7 +25,6 @@ interface AvailabilitySlot {
   current_students: number;
 }
 
-// --- Component State ---
 const route = useRoute();
 const router = useRouter();
 const bookingStore = useBookingStore();

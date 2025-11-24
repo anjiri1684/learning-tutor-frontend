@@ -3,7 +3,6 @@
 import { ref, onMounted, watch } from 'vue';
 import api from '@/services/api';
 
-// --- Component State ---
 const users = ref<any[]>([]);
 const isLoading = ref(true);
 const updatingUserId = ref<string | null>(null);
@@ -15,7 +14,6 @@ const pagination = ref({
   totalPages: 1,
 });
 
-// --- Data Fetching ---
 const fetchUsers = async () => {
   isLoading.value = true;
   try {
@@ -37,25 +35,22 @@ const fetchUsers = async () => {
 
 onMounted(fetchUsers);
 
-// --- Watch for changes to re-fetch data ---
 watch(() => pagination.value.page, fetchUsers);
 
-// Debounced search
 let searchTimeout: number;
 watch(searchQuery, () => {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    pagination.value.page = 1; // Reset to first page on new search
+    pagination.value.page = 1;
     fetchUsers();
-  }, 300); // Wait 300ms after user stops typing
+  }, 300);
 });
 
-// --- Action Methods ---
 const toggleStatus = async (user: any) => {
   updatingUserId.value = user.id;
   try {
     await api.put(`/admin/users/${user.id}/status`, { is_active: !user.is_active });
-    user.is_active = !user.is_active; // Optimistically update UI
+    user.is_active = !user.is_active;
   } catch (error) {
     console.error('Failed to update status:', error);
     alert('Failed to update user status.');
@@ -68,7 +63,7 @@ const handleDeleteUser = async (userId: string) => {
   if (confirm('Are you sure you want to permanently delete this teacher and all their data? This action cannot be undone.')) {
     try {
       await api.delete(`/admin/users/${userId}`);
-      await fetchUsers(); // Refresh the list
+      await fetchUsers();
     } catch (error) {
       console.error('Failed to delete user:', error);
       alert('Failed to delete user.');

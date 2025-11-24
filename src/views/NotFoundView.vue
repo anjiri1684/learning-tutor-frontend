@@ -4,18 +4,15 @@ import { RouterLink } from 'vue-router';
 
 <template>
   <div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100 text-center px-4 py-8">
-    <!-- Animated 404 Graphic -->
     <div class="relative mb-8">
       <h1 class="text-8xl sm:text-9xl font-extrabold text-indigo-600 animate-pulse">404</h1>
       <div class="absolute -top-4 -right-4 w-12 h-12 bg-indigo-200 rounded-full animate-bounce"></div>
       <div class="absolute -bottom-4 -left-4 w-8 h-8 bg-indigo-300 rounded-full animate-bounce delay-150"></div>
     </div>
 
-    <!-- Main Content -->
     <h2 class="text-3xl sm:text-4xl font-bold text-gray-800 mt-4">Oops! Page Not Found</h2>
     <p class="text-lg sm:text-xl text-gray-600 mt-3 max-w-md">It looks like this page took a wrong turn. Don’t worry, let’s get you back on track to learning a new language!</p>
 
-    <!-- Call to Actions -->
     <div class="mt-8 flex flex-col sm:flex-row items-center gap-4">
       <RouterLink
         to="/"

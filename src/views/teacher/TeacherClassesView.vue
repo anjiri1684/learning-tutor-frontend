@@ -3,13 +3,12 @@ import { ref, onMounted, computed } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import api from '@/services/api';
 
-// --- Interfaces ---
 interface Booking {
   ID: string;
   status: string;
   meeting_link?: string;
   student: {
-    id: string; // Ensure student ID is available for the link
+    id: string; 
     full_name: string;
   };
   availability_slot: {
@@ -21,21 +20,18 @@ interface Booking {
   };
 }
 
-// --- Component State ---
 const bookings = ref<Booking[]>([]);
 const isLoading = ref(true);
 const actionMessage = ref({ type: '', text: '' });
 const selectedBooking = ref<Booking | null>(null);
 const router = useRouter();
 
-// Modal and Form State
 const showFeedbackModal = ref(false);
 const feedbackText = ref('');
 const showUploadModal = ref(false);
 const selectedFile = ref<File | null>(null);
 const isSubmitting = ref(false);
 
-// --- Data Fetching ---
 const fetchBookings = async () => {
   isLoading.value = true;
   try {
@@ -49,7 +45,6 @@ const fetchBookings = async () => {
 };
 onMounted(fetchBookings);
 
-// --- Computed Properties ---
 const upcomingClasses = computed(() => {
   if (!Array.isArray(bookings.value)) return [];
   return bookings.value.filter(b => new Date(b.availability_slot.start_time) >= new Date() && b.status === 'confirmed');
@@ -59,7 +54,6 @@ const pastClasses = computed(() => {
   return bookings.value.filter(b => new Date(b.availability_slot.start_time) < new Date() || b.status !== 'confirmed');
 });
 
-// --- Action Methods ---
 const handleMarkAsComplete = async (bookingId: string) => {
   if (confirm('Are you sure you want to mark this class as complete? This will credit your earnings.')) {
     try {

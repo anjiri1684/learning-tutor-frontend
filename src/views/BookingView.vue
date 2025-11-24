@@ -16,7 +16,6 @@ const mpesaPhoneNumber = ref('');
 const isSubmitting = ref(false);
 const message = ref({ type: '', text: '' });
 
-// --- Computed Properties ---
 const price = computed(() => {
   if (!bookingStore.selectedSlot || !bookingStore.languages) return 0;
   const language = bookingStore.languages.find(lang => lang.ID === bookingStore.selectedSlot!.language_id);
@@ -31,7 +30,6 @@ const priceInKES = computed(() => {
 });
 
 
-// --- Lifecycle & Methods ---
 onMounted(() => {
   if (!bookingStore.selectedSlot) {
     router.push('/dashboard/find-teachers');

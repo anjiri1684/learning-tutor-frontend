@@ -2,8 +2,8 @@
 import { ref } from 'vue';
 import api from '@/services/api';
 
-const startDate = ref(new Date(new Date().setDate(1)).toISOString().split('T')[0]); // Default to first day of the month
-const endDate = ref(new Date().toISOString().split('T')[0]); // Default to today
+const startDate = ref(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
+const endDate = ref(new Date().toISOString().split('T')[0]);
 const isDownloading = ref(false);
 
 const handleDownload = async () => {
@@ -14,23 +14,19 @@ const handleDownload = async () => {
         start_date: startDate.value,
         end_date: endDate.value,
       },
-      responseType: 'blob', // Important: tells Axios to expect file data
+      responseType: 'blob',
     });
 
-    // Create a URL for the file blob
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
 
-    // Create a filename
     const fileName = `transactions_${startDate.value}_to_${endDate.value}.csv`;
     link.setAttribute('download', fileName);
 
-    // Trigger the download
     document.body.appendChild(link);
     link.click();
 
-    // Clean up
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
 

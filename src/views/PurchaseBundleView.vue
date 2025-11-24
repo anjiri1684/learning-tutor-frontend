@@ -5,18 +5,16 @@ import { useRouter } from 'vue-router';
 import { useCurrencyStore } from '@/stores/currency';
 import api from '@/services/api';
 
-// --- Interfaces ---
 interface Bundle {
   ID: string;
   Name: string;
   Price: number;
   NumberOfClasses: number;
-  language: { // <-- FIX: Changed from 'Language' to 'language'
+  language: {
     Name: string;
   };
 }
 
-// --- Component State ---
 const bundles = ref<Bundle[]>([]);
 const isLoading = ref(true);
 const showPaymentModal = ref(false);
@@ -28,10 +26,8 @@ const message = ref({ type: '', text: '' });
 const router = useRouter();
 const currencyStore = useCurrencyStore();
 
-// --- PayPal SDK Reference ---
 declare const paypal: any;
 
-// --- Computed Property for KES Price ---
 const selectedBundlePriceKES = computed(() => {
   if (selectedBundle.value && currencyStore.usdToKesRate) {
     return selectedBundle.value.Price * currencyStore.usdToKesRate;
@@ -40,7 +36,6 @@ const selectedBundlePriceKES = computed(() => {
 });
 
 
-// --- Lifecycle Hooks ---
 onMounted(async () => {
   try {
     const response = await api.get('/bundles');
@@ -53,10 +48,9 @@ onMounted(async () => {
   }
 });
 
-// --- UI Methods ---
 const openPaymentModal = (bundle: Bundle) => {
   selectedBundle.value = bundle;
-  paymentProvider.value = 'mpesa'; // Default to mpesa
+  paymentProvider.value = 'mpesa';
   message.value = { type: '', text: '' };
   mpesaPhoneNumber.value = '';
   isSubmitting.value = false;
@@ -67,7 +61,6 @@ const closePaymentModal = () => {
   showPaymentModal.value = false;
 };
 
-// --- Payment Logic ---
 const handleMpesaPurchase = async () => {
   if (!selectedBundle.value) return;
   isSubmitting.value = true;
