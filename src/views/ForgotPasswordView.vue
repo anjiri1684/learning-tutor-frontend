@@ -18,40 +18,59 @@ const handleRequest = async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-screen bg-gray-100">
-    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-      <h1 class="text-2xl font-bold text-center text-gray-800">Forgot Password</h1>
+  <div class="flex items-center justify-center min-h-screen bg-black relative isolate overflow-hidden font-sans selection:bg-purple-500 selection:text-white">
 
-      <div v-if="message" class="p-3 text-sm text-green-700 bg-green-100 border border-green-400 rounded-md">
-        {{ message }}
+    <div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
+      <div class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#a855f7] to-[#9089fc] opacity-40 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)"></div>
+    </div>
+
+    <div class="w-full max-w-md p-8 space-y-6 bg-gray-900/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/20">
+
+      <div class="text-center">
+        <h1 class="text-2xl font-bold tracking-tight text-white">Forgot Password?</h1>
+        <p v-if="!message" class="mt-2 text-sm text-gray-400">
+          Enter your email address and we will send you a link to reset your password.
+        </p>
+      </div>
+
+      <div v-if="message" class="p-4 text-sm text-green-200 bg-green-900/30 border border-green-500/30 rounded-xl flex items-start gap-3">
+        <svg class="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span class="leading-relaxed">{{ message }}</span>
       </div>
 
       <form v-else @submit.prevent="handleRequest" class="space-y-6">
-        <p class="text-sm text-gray-600">Enter your email address and we will send you a link to reset your password.</p>
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+          <label for="email" class="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
           <input
             v-model="email"
             id="email"
             type="email"
             required
-            class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            class="w-full px-4 py-3 bg-gray-950/50 border border-gray-700 text-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all placeholder-gray-600"
+            placeholder="you@example.com"
           />
         </div>
         <div>
           <button
             type="submit"
             :disabled="isLoading"
-            class="w-full flex justify-center px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
+            class="w-full flex justify-center px-4 py-3.5 text-sm font-bold text-white bg-purple-600 rounded-full shadow-lg shadow-purple-500/40 hover:bg-purple-500 hover:shadow-purple-500/60 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-purple-500 disabled:bg-purple-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200"
           >
-            <span v-if="isLoading">Sending...</span>
+            <span v-if="isLoading" class="flex items-center gap-2">
+               <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+               </svg>
+               Sending...
+            </span>
             <span v-else>Send Reset Link</span>
           </button>
         </div>
       </form>
-      <div class="text-sm text-center">
-        <RouterLink to="/login" class="font-medium text-indigo-600 hover:text-indigo-500">
-          Back to Login
+
+      <div class="text-sm text-center pt-2">
+        <RouterLink to="/login" class="font-medium text-purple-400 hover:text-purple-300 transition-colors flex items-center justify-center gap-2 group">
+          <span aria-hidden="true" class="group-hover:-translate-x-1 transition-transform">←</span> Back to Login
         </RouterLink>
       </div>
     </div>
