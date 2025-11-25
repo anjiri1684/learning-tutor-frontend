@@ -379,7 +379,7 @@ const testimonials = [
           </div>
           <div class="mt-10 flex items-center gap-x-6 lg:mt-0 lg:flex-shrink-0">
             <RouterLink to="/register" class="rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-purple-900 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-gray-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-all">Create free account</RouterLink>
-            <a href="#contact" class="text-sm font-semibold leading-6 text-white hover:text-purple-200">Contact us <span aria-hidden="true">→</span></a>
+            <a href="mailto:support@phyinternational.com" class="text-sm font-semibold leading-6 text-white hover:text-purple-200">Contact us <span aria-hidden="true">→</span></a>
           </div>
         </div>
       </section>
