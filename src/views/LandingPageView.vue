@@ -65,7 +65,7 @@ const testimonials = [
       <nav class="flex items-center justify-between p-4 lg:px-8 max-w-7xl mx-auto" aria-label="Global">
         <div class="flex lg:flex-1">
           <a href="#" class="-m-1.5 p-1.5 flex items-center gap-2">
-            <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/50">PYH</div>
+            <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/50">PHY</div>
             <span class="text-xl font-bold tracking-tight text-white">PHY International</span>
           </a>
         </div>

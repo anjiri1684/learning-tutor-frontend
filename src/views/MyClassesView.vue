@@ -136,98 +136,199 @@ const submitRescheduleRequest = async () => {
 </script>
 
 <template>
-  <div class="container mx-auto p-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">My Classes</h1>
+  <div class="min-h-screen bg-black text-white p-6 relative isolate overflow-hidden font-sans selection:bg-purple-500 selection:text-white">
 
-    <div v-if="actionMessage.text" :class="['mb-4 p-3 text-sm rounded-md', actionMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">
-      {{ actionMessage.text }}
+    <div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
+      <div class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#a855f7] to-[#9089fc] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
     </div>
 
-    <div v-if="isLoading">Loading classes...</div>
-    <div v-else>
-      <h2 class="text-2xl font-semibold text-gray-700 mb-4">Upcoming</h2>
-      <div v-if="upcomingClasses.length > 0" class="space-y-4">
-        <div v-for="booking in upcomingClasses" :key="booking.ID" class="bg-white p-4 rounded-lg shadow-md">
-          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-            <div>
-              <p class="font-bold text-lg">{{ booking.availability_slot?.language.name }}</p>
-              <p class="text-gray-600">with {{ booking.teacher.user.full_name }}</p>
-              <p class="text-sm text-gray-500 mt-1">{{ booking.availability_slot?.start_time ? formatDate(booking.availability_slot.start_time) : 'N/A' }}</p>
-            </div>
-            <div class="flex items-center space-x-2 mt-4 sm:mt-0 flex-wrap gap-2">
-              <button @click="openResourcesModal(booking)" class="px-3 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Resources</button>
-              <a v-if="booking.meeting_link" :href="booking.meeting_link" target="_blank" class="px-4 py-2 text-sm font-semibold text-white bg-green-500 rounded-md hover:bg-green-600">Join Class</a>
-              <span v-else class="px-4 py-2 text-sm text-gray-500 bg-gray-200 rounded-md">Link Pending</span>
-              <button @click="openRescheduleModal(booking)" class="px-3 py-2 text-sm font-semibold text-white bg-yellow-500 rounded-md hover:bg-yellow-600">Reschedule</button>
-              <button @click="openRefundModal(booking)" class="px-3 py-2 text-sm font-semibold text-white bg-red-500 rounded-md hover:bg-red-600">Refund</button>
+    <div class="max-w-5xl mx-auto">
+      <h1 class="text-3xl font-bold tracking-tight text-white drop-shadow-[0_0_10px_rgba(168,85,247,0.5)] mb-8">My Classes</h1>
+
+      <div v-if="actionMessage.text" :class="['mb-6 p-4 rounded-xl border flex items-center gap-3 shadow-lg animate-fade-in', actionMessage.type === 'success' ? 'bg-green-900/30 border-green-500/30 text-green-300' : 'bg-red-900/30 border-red-500/30 text-red-300']">
+         <svg v-if="actionMessage.type === 'success'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+         <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+         {{ actionMessage.text }}
+      </div>
+
+      <div v-if="isLoading" class="flex justify-center items-center h-64 bg-gray-900/40 rounded-2xl border border-white/5">
+         <div class="flex flex-col items-center gap-3">
+            <svg class="animate-spin h-8 w-8 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-gray-400">Loading classes...</span>
+         </div>
+      </div>
+
+      <div v-else>
+        <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+           <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></span> Upcoming
+        </h2>
+
+        <div v-if="upcomingClasses.length > 0" class="space-y-4 mb-10">
+          <div v-for="booking in upcomingClasses" :key="booking.ID" class="bg-gray-900/60 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-lg hover:border-purple-500/30 transition-all duration-300 group">
+            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6">
+              <div class="flex items-start gap-4">
+                 <div class="h-12 w-12 rounded-lg bg-gray-800 flex items-center justify-center text-lg font-bold text-gray-400 border border-gray-700 group-hover:border-purple-500/50 group-hover:text-white transition-colors">
+                    {{ booking.availability_slot?.language.name.substring(0,2).toUpperCase() }}
+                 </div>
+                 <div>
+                    <p class="font-bold text-lg text-white">{{ booking.availability_slot?.language.name }} Class</p>
+                    <p class="text-gray-400">with <span class="text-purple-400">{{ booking.teacher.user.full_name }}</span></p>
+                    <p class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                       {{ booking.availability_slot?.start_time ? formatDate(booking.availability_slot.start_time) : 'N/A' }}
+                    </p>
+                 </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-3">
+                <button @click="openResourcesModal(booking)" class="px-4 py-2 text-sm font-semibold text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white transition-all">Resources</button>
+
+                <a v-if="booking.meeting_link" :href="booking.meeting_link" target="_blank" class="px-4 py-2 text-sm font-bold text-white bg-green-600 rounded-lg shadow-lg shadow-green-500/20 hover:bg-green-500 hover:shadow-green-500/40 hover:-translate-y-0.5 transition-all">Join Class</a>
+                <span v-else class="px-4 py-2 text-sm font-medium text-gray-500 bg-black/30 border border-white/5 rounded-lg cursor-not-allowed">Link Pending</span>
+
+                <button @click="openRescheduleModal(booking)" class="px-4 py-2 text-sm font-semibold text-yellow-400 bg-yellow-900/20 border border-yellow-500/20 rounded-lg hover:bg-yellow-900/40 transition-all">Reschedule</button>
+                <button @click="openRefundModal(booking)" class="px-4 py-2 text-sm font-semibold text-red-400 bg-red-900/20 border border-red-500/20 rounded-lg hover:bg-red-900/40 transition-all">Refund</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <p v-else class="text-gray-500 mb-8">You have no upcoming classes.</p>
+        <p v-else class="text-gray-500 mb-12 bg-black/20 p-6 rounded-xl border border-white/5 border-dashed text-center">You have no upcoming classes scheduled.</p>
 
-      <h2 class="text-2xl font-semibold text-gray-700 mt-8 mb-4">Past</h2>
-      <div v-if="pastClasses.length > 0" class="space-y-4">
-        <div v-for="booking in pastClasses" :key="booking.ID" class="bg-white p-4 rounded-lg shadow-md opacity-80">
-          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-            <div>
-              <p class="font-bold">{{ booking.availability_slot?.language.name }}</p>
-              <p class="text-gray-600">with {{ booking.teacher.user.full_name }}</p>
-              <p class="text-sm text-gray-500 mt-1">{{ booking.availability_slot?.start_time ? formatDate(booking.availability_slot.start_time) : 'N/A' }} - <span class="font-semibold capitalize">{{ booking.status }}</span></p>
-            </div>
-            <div class="flex items-center space-x-2 mt-4 sm:mt-0">
-              <button @click="openResourcesModal(booking)" class="px-3 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Resources</button>
-              <button v-if="booking.status === 'completed'" @click="openReviewModal(booking)" class="px-4 py-2 text-sm font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600">Leave a Review</button>
+        <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+           <span class="w-2 h-2 rounded-full bg-gray-500"></span> Past History
+        </h2>
+
+        <div v-if="pastClasses.length > 0" class="space-y-4">
+          <div v-for="booking in pastClasses" :key="booking.ID" class="bg-gray-900/40 backdrop-blur-sm p-5 rounded-2xl border border-white/5 hover:bg-gray-900/60 transition-colors">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div>
+                <p class="font-bold text-white">{{ booking.availability_slot?.language.name }}</p>
+                <p class="text-gray-400 text-sm">with {{ booking.teacher.user.full_name }}</p>
+                <div class="flex items-center gap-2 mt-1">
+                   <p class="text-xs text-gray-500 font-mono">{{ booking.availability_slot?.start_time ? formatDate(booking.availability_slot.start_time) : 'N/A' }}</p>
+                   <span class="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700 capitalize">{{ booking.status }}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <button @click="openResourcesModal(booking)" class="text-sm font-medium text-purple-400 hover:text-purple-300 hover:underline">Resources</button>
+                <button v-if="booking.status === 'completed'" @click="openReviewModal(booking)" class="px-4 py-2 text-sm font-semibold text-blue-400 bg-blue-900/20 border border-blue-500/20 rounded-lg hover:bg-blue-900/40 transition-all">Leave Review</button>
+              </div>
             </div>
           </div>
         </div>
+        <p v-else class="text-gray-500 bg-black/20 p-6 rounded-xl border border-white/5 border-dashed text-center">You have no past class history.</p>
       </div>
-      <p v-else class="text-gray-500">You have no past classes.</p>
-    </div>
 
-    <div v-if="showReviewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h3 class="text-lg font-bold">Leave a Review</h3>
-        <div class="mt-4"><label class="block text-sm font-medium">Rating (1-5)</label><input type="number" min="1" max="5" v-model="reviewData.rating" class="w-full mt-1 border rounded p-2" /></div>
-        <div class="mt-4"><label class="block text-sm font-medium">Comment</label><textarea v-model="reviewData.comment" rows="4" class="w-full mt-1 border rounded p-2"></textarea></div>
-        <div class="mt-6 flex justify-end space-x-4"><button @click="showReviewModal = false" class="px-4 py-2 bg-gray-200 rounded">Cancel</button><button @click="submitReview" class="px-4 py-2 bg-indigo-600 text-white rounded">Submit</button></div>
-      </div>
-    </div>
-    <div v-if="showRefundModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h3 class="text-lg font-bold">Request a Refund</h3>
-        <div class="mt-4"><label class="block text-sm font-medium">Reason for Refund Request</label><textarea v-model="refundReason" rows="4" class="w-full mt-1 border rounded p-2"></textarea></div>
-        <div class="mt-6 flex justify-end space-x-4"><button @click="showRefundModal = false" class="px-4 py-2 bg-gray-200 rounded">Cancel</button><button @click="submitRefundRequest" class="px-4 py-2 bg-red-600 text-white rounded">Submit Request</button></div>
-      </div>
-    </div>
-    <div v-if="showRescheduleModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h3 class="text-lg font-bold">Request to Reschedule</h3>
-        <p class="text-sm text-gray-600 mt-2">Propose a new time for your class. This will be sent to the teacher for approval.</p>
-        <div class="mt-4">
-          <label class="block text-sm font-medium">New Start Time</label>
-          <input type="datetime-local" v-model="rescheduleData.new_start_time" class="w-full mt-1 border rounded p-2" />
+      <Teleport to="body">
+        <div v-if="showReviewModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+          <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-white mb-4">Leave a Review</h3>
+              <div class="space-y-4">
+                 <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Rating (1-5)</label>
+                    <input type="number" min="1" max="5" v-model="reviewData.rating" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                 </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Comment</label>
+                    <textarea v-model="reviewData.comment" rows="4" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-600" placeholder="Share your experience..."></textarea>
+                 </div>
+                 <div class="flex justify-end gap-3 pt-2">
+                    <button @click="showReviewModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
+                    <button @click="submitReview" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30">Submit Review</button>
+                 </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="mt-4">
-          <label class="block text-sm font-medium">New End Time</label>
-          <input type="datetime-local" v-model="rescheduleData.new_end_time" class="w-full mt-1 border rounded p-2" />
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="showRefundModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+          <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-red-900/20 w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-white mb-4">Request Refund</h3>
+              <div>
+                 <label class="block text-sm font-medium text-gray-300 mb-2">Reason for Request</label>
+                 <textarea v-model="refundReason" rows="4" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-600" placeholder="Please explain why..."></textarea>
+              </div>
+              <div class="flex justify-end gap-3 pt-6">
+                 <button @click="showRefundModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
+                 <button @click="submitRefundRequest" class="px-6 py-2.5 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-500 shadow-lg shadow-red-500/30">Submit Request</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="mt-6 flex justify-end space-x-4">
-          <button @click="showRescheduleModal = false" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-          <button @click="submitRescheduleRequest" class="px-4 py-2 bg-indigo-600 text-white rounded">Send Request</button>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="showRescheduleModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+          <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-white mb-2">Request to Reschedule</h3>
+              <p class="text-sm text-gray-400 mb-6">Propose a new time. This will be sent to the teacher for approval.</p>
+
+              <div class="space-y-4">
+                 <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">New Start Time</label>
+                    <input type="datetime-local" v-model="rescheduleData.new_start_time" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 [color-scheme:dark]" />
+                 </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">New End Time</label>
+                    <input type="datetime-local" v-model="rescheduleData.new_end_time" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 [color-scheme:dark]" />
+                 </div>
+              </div>
+
+              <div class="flex justify-end gap-3 pt-6">
+                 <button @click="showRescheduleModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
+                 <button @click="submitRescheduleRequest" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30">Send Request</button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div v-if="showResourcesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h3 class="text-lg font-bold">Class Resources</h3>
-        <div v-if="isLoadingResources" class="mt-4 text-center">Loading...</div>
-        <div v-else-if="selectedBookingResources.length > 0" class="mt-4 space-y-2">
-          <a v-for="resource in selectedBookingResources" :key="resource.id" :href="resource.file_url" target="_blank" download class="block p-3 bg-gray-100 rounded-md hover:bg-gray-200 text-blue-600 font-semibold">{{ resource.file_name }}</a>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="showResourcesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+          <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div class="p-6">
+              <div class="flex justify-between items-center mb-6">
+                 <h3 class="text-xl font-bold text-white">Class Resources</h3>
+                 <button @click="showResourcesModal = false" class="text-gray-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+              </div>
+
+              <div v-if="isLoadingResources" class="py-8 text-center">
+                 <svg class="animate-spin h-8 w-8 text-purple-500 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                 <span class="text-gray-400 text-sm">Loading files...</span>
+              </div>
+
+              <div v-else-if="selectedBookingResources.length > 0" class="space-y-2">
+                 <a
+                    v-for="resource in selectedBookingResources"
+                    :key="resource.id"
+                    :href="resource.file_url"
+                    target="_blank"
+                    download
+                    class="flex items-center gap-3 p-3 bg-black/30 border border-white/5 rounded-xl hover:bg-purple-900/20 hover:border-purple-500/30 transition-all group"
+                 >
+                    <div class="bg-gray-800 p-2 rounded-lg group-hover:bg-purple-900/40 transition-colors">
+                       <svg class="w-5 h-5 text-gray-400 group-hover:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <span class="text-sm text-gray-300 group-hover:text-white font-medium truncate">{{ resource.file_name }}</span>
+                    <svg class="w-4 h-4 text-gray-600 group-hover:text-purple-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                 </a>
+              </div>
+
+              <div v-else class="py-8 text-center border border-dashed border-gray-700 rounded-xl bg-black/20">
+                 <p class="text-gray-500 text-sm">No resources uploaded yet.</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div v-else class="mt-4 text-gray-500">No resources have been uploaded for this class.</div>
-        <div class="mt-6 text-right"><button @click="showResourcesModal = false" class="px-4 py-2 bg-gray-200 rounded">Close</button></div>
-      </div>
+      </Teleport>
     </div>
   </div>
 </template>
