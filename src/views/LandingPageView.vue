@@ -20,42 +20,43 @@ const faqs = [
 
 const testimonials = [
   {
-    content: "This platform changed everything. I went from knowing zero Spanish to holding full conversations in just three months. My tutor, Maria, was incredible!",
-    author: "Ken Omondi",
+    content: "The immersive approach here is unparalleled. I went from stumbling over basic greetings to navigating complex business discussions in Spanish within months. The 1-on-1 sessions are a total game-changer.",
+    author: "James Harrison",
     role: "Learning Spanish",
-    image: "https://randomuser.me/api/portraits/men/32.jpg"
+    image: "https://randomuser.me/api/portraits/men/31.jpg"
   },
   {
-    content: "Preparing for my IELTS exam felt overwhelming, but the mock tests and targeted feedback from my tutor made all the difference. I got the score I needed!",
-    author: "Aisha Njeri",
+    content: "I was struggling to hit my target score for the IELTS, but the structured feedback on my writing and speaking modules provided the breakthrough I needed. I finally cleared the exam with room to spare!",
+    author: "Claire Thompson",
     role: "IELTS Student",
-    image: "https://randomuser.me/api/portraits/women/44.jpg"
+    image: "https://randomuser.me/api/portraits/women/42.jpg"
   },
   {
-    content: "As a busy professional, the flexibility is a game-changer. I can book lessons early in the morning or late at night. It's the only way I could have learned French.",
-    author: "John Smith",
+    content: "Balancing a demanding executive role with language learning seemed impossible until I found this platform. The 24/7 availability of tutors allowed me to fit French lessons into my schedule without compromise.",
+    author: "Thomas Wright",
     role: "Learning French",
-    image: "https://randomuser.me/api/portraits/men/86.jpg"
+    image: "https://randomuser.me/api/portraits/men/75.jpg"
   },
   {
-    content: "The AI practice tools between lessons kept me engaged and helped reinforce what I learned. Highly recommend for anyone serious about languages.",
-    author: "Maria Gonzalez",
+    content: "The integration of AI-driven practice tools alongside human tutoring creates a perfect feedback loop. It kept me sharp between sessions and significantly accelerated my English fluency.",
+    author: "Sarah Miller",
     role: "Learning English",
-    image: "https://randomuser.me/api/portraits/women/65.jpg"
+    image: "https://randomuser.me/api/portraits/women/68.jpg"
   },
   {
-    content: "From beginner to conversational in Mandarin in six months. The resource library is a goldmine! I'm finally ready for my business trip to Beijing.",
-    author: "Li Wei",
+    content: "Mandarin always felt intimidating, but the curriculum breaks it down so logically. I’ve just finished my first business trip to Shanghai and felt completely confident handling daily interactions on my own.",
+    author: "David Bennett",
     role: "Learning Mandarin",
-    image: "https://randomuser.me/api/portraits/men/22.jpg"
+    image: "https://randomuser.me/api/portraits/men/25.jpg"
   },
   {
-    content: "Great community support and excellent tutors. I've made friends while learning German and we practice together every weekend.",
-    author: "Anna Müller",
+    content: "What sets this apart is the community. Beyond the excellent German tutoring, I’ve connected with a global study group that makes the learning process feel collaborative rather than solitary.",
+    author: "Emily Peterson",
     role: "Learning German",
-    image: "https://randomuser.me/api/portraits/women/28.jpg"
+    image: "https://randomuser.me/api/portraits/women/22.jpg"
   },
 ];
+
 </script>
 
 <template>
@@ -320,7 +321,7 @@ const testimonials = [
               <p class="mt-6 flex items-baseline gap-x-1">
                 <span class="text-4xl font-bold tracking-tight text-white">Save 20%</span>
               </p>
-              <RouterLink to="/bundles" class="mt-6 block rounded-full bg-white px-3 py-2 text-center text-sm font-semibold text-purple-600 hover:bg-gray-100 transition shadow-lg">Get Bundles</RouterLink>
+              <RouterLink to="/register" class="mt-6 block rounded-full bg-white px-3 py-2 text-center text-sm font-semibold text-purple-600 hover:bg-gray-100 transition shadow-lg">Get Bundles</RouterLink>
               <ul class="mt-8 space-y-3 text-sm leading-6 text-white">
                 <li class="flex gap-x-3">✓ 5, 10, or 20 pack</li>
                 <li class="flex gap-x-3">✓ Lock in rates</li>
@@ -336,7 +337,7 @@ const testimonials = [
                 <span class="text-4xl font-bold tracking-tight text-white">$99</span>
                 <span class="text-sm font-semibold leading-6 text-gray-400">/month</span>
               </p>
-              <RouterLink to="/subscribe" class="mt-6 block rounded-full bg-white/5 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-white/10 transition">Subscribe</RouterLink>
+              <RouterLink to="/register" class="mt-6 block rounded-full bg-white/5 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-white/10 transition">Subscribe</RouterLink>
               <ul class="mt-8 space-y-3 text-sm leading-6 text-gray-300">
                 <li class="flex gap-x-3">✓ Unlimited lessons</li>
                 <li class="flex gap-x-3">✓ All AI tools included</li>
@@ -369,20 +370,40 @@ const testimonials = [
       </section>
 
       <section class="bg-purple-900 relative overflow-hidden">
-        <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
-        <div class="absolute inset-0 bg-gradient-to-r from-purple-900 to-indigo-900 opacity-90"></div>
+  <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
+  <div class="absolute inset-0 bg-gradient-to-r from-purple-900 to-indigo-900 opacity-90"></div>
 
-        <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:flex lg:items-center lg:justify-between lg:px-8 relative z-10">
-          <div class="max-w-2xl">
-            <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Ready to get fluent?</h2>
-            <p class="mt-4 text-lg text-purple-200">Join thousands of learners today and unlock your language potential.</p>
-          </div>
-          <div class="mt-10 flex items-center gap-x-6 lg:mt-0 lg:flex-shrink-0">
-            <RouterLink to="/register" class="rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-purple-900 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-gray-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-all">Create free account</RouterLink>
-            <a href="mailto:support@phyinternational.com" class="text-sm font-semibold leading-6 text-white hover:text-purple-200">Contact us <span aria-hidden="true">→</span></a>
-          </div>
+  <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 relative z-10">
+    <div class="lg:flex lg:items-center lg:justify-between">
+      <div class="max-w-2xl">
+        <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Ready to get fluent?</h2>
+        <p class="mt-4 text-lg text-purple-200">Join thousands of learners today and unlock your language potential.</p>
+      </div>
+      <div class="mt-10 flex items-center gap-x-6 lg:mt-0 lg:flex-shrink-0">
+        <RouterLink to="/register" class="rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-purple-900 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-gray-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-all">
+          Create free account
+        </RouterLink>
+        <a href="mailto:support@phyinternational.com" class="text-sm font-semibold leading-6 text-white hover:text-purple-200">
+          Contact us <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-16 border-t border-white/10 pt-16">
+      <div class="rounded-3xl bg-white/5 p-8 ring-1 ring-inset ring-white/10 backdrop-blur-sm sm:flex sm:items-center sm:justify-between">
+        <div class="sm:max-w-xl">
+          <h3 class="text-xl font-semibold text-white">Want to become a teacher?</h3>
+          <p class="mt-2 text-purple-200/80">Share your expertise and reach students globally. We're always looking for passionate tutors to join our growing community.</p>
         </div>
-      </section>
+        <div class="mt-6 sm:mt-0 sm:ml-8">
+          <a href="mailto:support@phyinternational.com" class="inline-flex items-center justify-center rounded-full bg-purple-600/30 px-6 py-3 text-sm font-semibold text-white ring-1 ring-inset ring-purple-400/30 hover:bg-purple-600/50 transition-all">
+            Email us to apply
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
     </main>
   </div>

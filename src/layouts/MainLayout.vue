@@ -39,7 +39,7 @@ const getUserInitials = () => {
     <aside class="hidden md:flex w-72 bg-gray-900 border-r border-white/10 flex-col z-20 relative shadow-2xl shadow-black">
       <div class="p-6 border-b border-white/5 flex items-center gap-3">
         <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/30 text-xs">
-          PYH
+          PHY
         </div>
         <h1 class="text-xl font-bold tracking-tight text-white">LanguageTutor</h1>
       </div>
