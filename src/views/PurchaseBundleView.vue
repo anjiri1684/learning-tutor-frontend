@@ -1,8 +1,9 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { ref, onMounted, nextTick, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCurrencyStore } from '@/stores/currency';
+import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
 
 interface Bundle {
@@ -27,7 +28,7 @@ const router = useRouter();
 const currencyStore = useCurrencyStore();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const paypal: any;
+declare const PaystackPop: any;
 
 const selectedBundlePriceKES = computed(() => {
   if (selectedBundle.value && currencyStore.usdToKesRate) {
@@ -83,58 +84,57 @@ const handleMpesaPurchase = async () => {
   }
 };
 
-const renderPayPalButton = () => {
+const handlePaystackPayment = async () => {
   if (!selectedBundle.value) return;
 
-  const buttonContainer = document.getElementById('paypal-button-container');
-  if (buttonContainer) {
-    buttonContainer.innerHTML = '';
-    paypal.Buttons({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      createOrder: async (_: any, actions: any) => {
-        void(_);
-        void(actions);
+  const authStore = useAuthStore();
+  if (!authStore.user?.email) {
+    message.value = { type: 'error', text: 'User email not found. Please log in again.' };
+    return;
+  }
+
+  isSubmitting.value = true;
+  message.value = { type: '', text: '' };
+
+  try {
+    const purchaseResponse = await api.post(`/bundles/${selectedBundle.value.ID}/purchase`, {
+      payment_provider: 'paystack',
+    });
+    const paymentId = purchaseResponse.data.payment_id;
+
+    const handler = PaystackPop.setup({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      email: authStore.user.email,
+      amount: Math.round(selectedBundlePriceKES.value * 100),
+      currency: 'KES',
+      ref: paymentId,
+      onSuccess: async function(response: { reference: string }) {
+        message.value = { type: 'info', text: 'Verifying payment...' };
         try {
-          const purchaseResponse = await api.post(`/bundles/${selectedBundle.value!.ID}/purchase`, {
-            payment_provider: 'paypal',
-          });
-          const paymentId = purchaseResponse.data.payment_id;
-          const orderResponse = await api.post(`/payments/paypal/create-order/${paymentId}`);
-          return orderResponse.data.orderID;
-        } catch (error) {
-          console.log('Failed to initiate PayPal transaction:', error);
-          message.value = { type: 'error', text: 'Could not initiate PayPal transaction.' };
-          return '';
-        }
-      },
-      // FIXED: Renamed second argument from '_' to 'actions' so void(actions) works
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      onApprove: async (data: any, actions: any) => {
-        void(actions);
-        isSubmitting.value = true;
-        message.value = { type: 'info', text: 'Finalizing payment...' };
-        try {
-          await api.post('/payments/paypal/capture-order', {
-            orderID: data.orderID,
-          });
+          await api.post('/payments/paystack/verify', { reference: response.reference });
           message.value = { type: 'success', text: 'Purchase successful! Your bundle is now active.' };
           setTimeout(() => {
             closePaymentModal();
             router.push('/my-bundles');
           }, 3000);
         } catch (error) {
-          console.error('Failed to finalize payment:', error);
-          message.value = { type: 'error', text: 'Failed to finalize payment.' };
+          console.error('Failed to verify payment:', error);
+          message.value = { type: 'error', text: 'Failed to verify payment.' };
         } finally {
           isSubmitting.value = false;
         }
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      onError: (err: any) => {
-        console.error('PayPal button error:', err);
-        message.value = { type: 'error', text: 'An error occurred with the PayPal payment.' };
-      }
-    }).render('#paypal-button-container');
+      onClose: () => {
+        if (!isSubmitting.value) return;
+        isSubmitting.value = false;
+        message.value = { type: '', text: '' };
+      },
+    });
+    handler.openIframe();
+  } catch (error: any) {
+    console.log('Failed to initiate Paystack transaction:', error);
+    message.value = { type: 'error', text: error.response?.data?.error || 'Could not initiate Paystack transaction.' };
+    isSubmitting.value = false;
   }
 };
 
@@ -143,13 +143,6 @@ const getPriceInKES = (priceUSD: number) => {
     return priceUSD * currencyStore.usdToKesRate;
   }
   return 0;
-};
-
-const selectPayPal = () => {
-  paymentProvider.value = 'paypal';
-  nextTick(() => {
-    renderPayPalButton();
-  });
 };
 </script>
 
@@ -260,15 +253,24 @@ const selectPayPal = () => {
               </div>
 
               <div
-                @click="selectPayPal"
+                @click="paymentProvider = 'paystack'"
                 class="p-4 border rounded-xl cursor-pointer transition-all bg-black/20"
-                :class="paymentProvider === 'paypal' ? 'border-blue-500/50 bg-blue-900/10 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'border-white/10 hover:border-white/30'"
+                :class="paymentProvider === 'paystack' ? 'border-blue-500/50 bg-blue-900/10 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'border-white/10 hover:border-white/30'"
               >
                 <div class="flex justify-between items-center">
-                   <h3 class="font-bold text-blue-400">Pay with PayPal</h3>
-                   <span class="text-xs font-mono text-gray-400">USD ${{ selectedBundle?.Price.toFixed(2) }}</span>
+                   <h3 class="font-bold text-blue-400">Pay with Paystack</h3>
+                   <span class="text-xs font-mono text-gray-400">KES {{ selectedBundlePriceKES.toFixed(2) }}</span>
                 </div>
-                <div v-if="paymentProvider === 'paypal'" id="paypal-button-container" class="mt-4 animate-fade-in min-h-[40px]"></div>
+                <div v-if="paymentProvider === 'paystack'" class="mt-4 animate-fade-in">
+                  <button
+                    @click.stop="handlePaystackPayment"
+                    :disabled="isSubmitting"
+                    class="w-full py-3 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500 disabled:bg-blue-800 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                  >
+                    <span v-if="isSubmitting" class="flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...</span>
+                    <span v-else>Pay with Paystack</span>
+                  </button>
+                </div>
               </div>
             </div>
 

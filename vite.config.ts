@@ -12,15 +12,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/v1': {
-        target: 'https://learning-tutor-backend-qmis.onrender.com',
-        ws: true,
-        changeOrigin: true,
-      },
       '/api': {
-        target: 'https://learning-tutor-backend-qmis.onrender.com',
+        target: 'http://localhost:8081',
         changeOrigin: true,
       },
     },
   },
 })
+// https://learning-tutor-backend-qmis.onrender.com

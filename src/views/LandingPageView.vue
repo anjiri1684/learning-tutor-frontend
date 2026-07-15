@@ -170,7 +170,7 @@ const testimonials = [
                 <div class="absolute left-0 top-0 flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-600 text-white font-bold text-xl shadow-[0_0_15px_rgba(147,51,234,0.6)] group-hover:scale-110 transition-transform">2</div>
                 <div class="bg-gray-900 p-8 rounded-3xl shadow-lg shadow-purple-500/10 border border-gray-800 hover:border-purple-500/30 hover:shadow-purple-500/20 transition-all h-full">
                     <dt class="text-xl font-bold leading-7 text-white">Book Instantly</dt>
-                    <dd class="mt-2 text-base leading-7 text-gray-400">Select a time on the calendar. Secure payments via M-Pesa, PayPal, or card with easy rescheduling.</dd>
+                    <dd class="mt-2 text-base leading-7 text-gray-400">Select a time on the calendar. Secure payments via M-Pesa, Paystack, or card with easy rescheduling.</dd>
                 </div>
               </div>
               <div class="relative pl-16 group">

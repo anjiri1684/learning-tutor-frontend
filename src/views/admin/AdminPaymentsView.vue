@@ -49,7 +49,7 @@ const getStatusStyles = (status: string) => {
 const getProviderIcon = (provider: string) => {
   switch (provider?.toLowerCase()) {
     case 'mpesa': return 'text-green-500';
-    case 'paypal': return 'text-blue-500';
+    case 'paystack': return 'text-blue-500';
     case 'credit': return 'text-purple-500';
     default: return 'text-gray-400';
   }
@@ -91,7 +91,7 @@ const getProviderIcon = (provider: string) => {
             >
               <option value="">All Providers</option>
               <option value="mpesa">M-Pesa</option>
-              <option value="paypal">PayPal</option>
+              <option value="paystack">Paystack</option>
               <option value="credit">Credit Card</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">

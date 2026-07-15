@@ -14,6 +14,10 @@ dist-ssr
 coverage
 *.local
 
+# Environment files (must not be committed)
+.env
+.env.production
+
 /cypress/videos/
 /cypress/screenshots/
 

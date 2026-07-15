@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
+import router from '@/router'
 
 interface User {
   id: string
@@ -130,7 +131,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    window.location.href = '/login'
+    router.push('/login')
   }
 
   onMounted(async () => {
