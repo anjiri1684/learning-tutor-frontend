@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth';
 import { RouterLink } from 'vue-router';
+import NotificationBell from '@/components/NotificationBell.vue';
 
 const authStore = useAuthStore();
 const handleLogout = () => {
@@ -20,6 +21,9 @@ const navLinks = [
   { name: 'Payment History', path: '/admin/payments' },
   { name: 'Review Management', path: '/admin/reviews' },
   { name: 'Reports', path: '/admin/reports' },
+  { name: 'Resource Library', path: '/admin/library' },
+  { name: 'Audit Log', path: '/admin/audit-log' },
+  { name: 'Settings', path: '/admin/settings' },
 ];
 
 // Helper to get initials
@@ -44,7 +48,13 @@ const getUserInitials = () => {
       <div class="p-6 border-b border-white/5 bg-white/[0.02]">
         <div class="flex items-center gap-4">
            <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 p-[2px] shadow-md shadow-purple-500/20">
-              <div class="h-full w-full rounded-full bg-gray-900 flex items-center justify-center text-xs font-bold text-white">
+              <img
+                 v-if="authStore.user?.profile_picture_url"
+                 :src="authStore.user.profile_picture_url"
+                 class="h-full w-full rounded-full object-cover border border-gray-900"
+                 alt="Profile"
+              />
+              <div v-else class="h-full w-full rounded-full bg-gray-900 flex items-center justify-center text-xs font-bold text-white">
                  {{ getUserInitials() }}
               </div>
            </div>
@@ -78,6 +88,10 @@ const getUserInitials = () => {
 
         <div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80 pointer-events-none" aria-hidden="true">
            <div class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#a855f7] to-[#9089fc] opacity-15 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+        </div>
+
+        <div class="flex justify-end p-4 pb-0 relative z-20">
+          <NotificationBell />
         </div>
 
         <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-8 relative z-10 scroll-smooth">

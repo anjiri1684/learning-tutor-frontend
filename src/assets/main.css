@@ -2,3 +2,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* The app is dark-themed, but native <select> dropdown option lists ignore
+   Tailwind classes and default to the OS light popup unless hinted otherwise. */
+select {
+  color-scheme: dark;
+}

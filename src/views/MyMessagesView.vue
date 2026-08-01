@@ -2,44 +2,53 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useWebSocket } from '@/services/websocket'
 import api from '@/services/api'
 
+const POLL_INTERVAL_MS = 4000
+
 const authStore = useAuthStore()
-const { connect, disconnect, sendMessage, onMessage } = useWebSocket()
+
+const CONVO_POLL_INTERVAL_MS = 10000
 
 const conversations = ref<any[]>([])
 const selectedConversation = ref<any>(null)
 const messages = ref<any[]>([])
 const newMessage = ref('')
 const error = ref<string | null>(null)
+let pollTimer: ReturnType<typeof setInterval> | null = null
+let convoPollTimer: ReturnType<typeof setInterval> | null = null
 
-onMounted(async () => {
+const fetchConversations = async () => {
   try {
     const response = await api.get('/conversations')
     conversations.value = response.data
-    if (authStore.token) {
-      connect(authStore.token)
-    }
-    onMessage((msg) => {
-      if (selectedConversation.value && msg.conversation_id === selectedConversation.value.ID) {
-        messages.value.push(msg)
-      }
-    })
   } catch (err) {
     console.error('Failed to fetch conversations:', err)
     error.value = 'Failed to load conversations. Please try again.'
   }
+}
+
+onMounted(async () => {
+  await fetchConversations()
+  convoPollTimer = setInterval(fetchConversations, CONVO_POLL_INTERVAL_MS)
 })
 
 onUnmounted(() => {
-  disconnect()
+  stopPolling()
+  if (convoPollTimer) clearInterval(convoPollTimer)
 })
 
-const selectConversation = async (convo: any) => {
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+const fetchMessages = async () => {
+  if (!selectedConversation.value) return
   try {
-    selectedConversation.value = convo
-    const response = await api.get(`/conversations/${convo.ID}/messages`)
+    const response = await api.get(`/conversations/${selectedConversation.value.ID}/messages`)
     messages.value = response.data
     error.value = null
   } catch (err) {
@@ -48,13 +57,25 @@ const selectConversation = async (convo: any) => {
   }
 }
 
-const handleSendMessage = () => {
+const selectConversation = async (convo: any) => {
+  stopPolling()
+  selectedConversation.value = convo
+  await fetchMessages()
+  convo.unread_count = 0
+  pollTimer = setInterval(fetchMessages, POLL_INTERVAL_MS)
+}
+
+const handleSendMessage = async () => {
   if (!newMessage.value.trim() || !selectedConversation.value) return
-  sendMessage({
-    conversation_id: selectedConversation.value.ID,
-    content: newMessage.value,
-  })
+  const content = newMessage.value
   newMessage.value = ''
+  try {
+    await api.post(`/conversations/${selectedConversation.value.ID}/messages`, { content })
+    await fetchMessages()
+  } catch (err) {
+    console.error('Failed to send message:', err)
+    error.value = 'Failed to send message. Please try again.'
+  }
 }
 
 const getParticipantName = (convo: any) => {
@@ -101,10 +122,16 @@ const getParticipantName = (convo: any) => {
                     <div class="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-300 border border-gray-700 group-hover:border-purple-500/50 transition-colors">
                        {{ getParticipantName(convo).charAt(0).toUpperCase() }}
                     </div>
-                    <div>
+                    <div class="flex-grow min-w-0">
                        <p class="font-semibold text-gray-200 group-hover:text-white transition-colors">{{ getParticipantName(convo) }}</p>
                        <p class="text-xs text-gray-500 truncate max-w-[150px]">Click to view chat</p>
                     </div>
+                    <span
+                      v-if="convo.unread_count > 0"
+                      class="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-purple-500/30"
+                    >
+                      {{ convo.unread_count > 9 ? '9+' : convo.unread_count }}
+                    </span>
                  </div>
                </div>
             </div>
@@ -132,12 +159,15 @@ const getParticipantName = (convo: any) => {
                 <div
                   :class="[
                     'px-5 py-3 rounded-2xl max-w-md text-sm leading-relaxed shadow-md',
-                    msg.sender_id === authStore.user?.id
+                    msg.SenderID === authStore.user?.id
                       ? 'bg-purple-600 text-white ml-auto rounded-tr-none shadow-purple-900/20'
                       : 'bg-gray-800 text-gray-200 rounded-tl-none border border-gray-700'
                   ]"
                 >
-                  {{ msg.content }}
+                  {{ msg.Content }}
+                  <span v-if="msg.SenderID === authStore.user?.id" class="block text-right text-[10px] mt-1 opacity-70">
+                    {{ msg.ReadAt ? '✓✓ Read' : '✓ Sent' }}
+                  </span>
                 </div>
               </div>
 

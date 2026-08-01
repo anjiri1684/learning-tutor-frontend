@@ -13,6 +13,22 @@ const currentPage = ref(1);
 const lastPage = ref(1);
 const totalBookings = ref(0);
 
+const showAssignModal = ref(false);
+const isAssigning = ref(false);
+const assignError = ref('');
+const teachers = ref<any[]>([]);
+const students = ref<any[]>([]);
+const languages = ref<any[]>([]);
+const assignForm = ref({
+  teacher_id: '',
+  student_id: '',
+  language_id: '',
+  start_time: '',
+  end_time: '',
+  meeting_link: '',
+  save_as_default_link: false,
+});
+
 const fetchBookings = async (page: number = 1) => {
   isLoading.value = true;
   try {
@@ -58,6 +74,57 @@ const handleAddLink = async () => {
 
 const formatDate = (dateString: string) => new Date(dateString).toLocaleString();
 
+const openAssignModal = async () => {
+  assignError.value = '';
+  assignForm.value = { teacher_id: '', student_id: '', language_id: '', start_time: '', end_time: '', meeting_link: '', save_as_default_link: false };
+  showAssignModal.value = true;
+
+  try {
+    const [teachersRes, usersRes, languagesRes] = await Promise.all([
+      api.get('/teachers'),
+      api.get('/admin/users', { params: { limit: 1000 } }),
+      api.get('/languages'),
+    ]);
+    teachers.value = teachersRes.data;
+    students.value = (usersRes.data.data || []).filter((u: any) => u.role === 'student');
+    languages.value = languagesRes.data;
+  } catch (error) {
+    console.error('Failed to load assign-class options:', error);
+    assignError.value = 'Failed to load teachers/students/languages.';
+  }
+};
+
+const handleAssignClass = async () => {
+  assignError.value = '';
+  isAssigning.value = true;
+  try {
+    const payload: any = {
+      teacher_id: assignForm.value.teacher_id,
+      student_id: assignForm.value.student_id,
+      language_id: assignForm.value.language_id,
+      start_time: new Date(assignForm.value.start_time).toISOString(),
+      end_time: new Date(assignForm.value.end_time).toISOString(),
+    };
+    if (assignForm.value.meeting_link) {
+      payload.meeting_link = assignForm.value.meeting_link;
+    }
+    await api.post('/admin/bookings/assign', payload);
+
+    if (assignForm.value.save_as_default_link && assignForm.value.meeting_link) {
+      await api.put(`/admin/teachers/${assignForm.value.teacher_id}/meeting-link`, {
+        default_meeting_link: assignForm.value.meeting_link,
+      });
+    }
+
+    showAssignModal.value = false;
+    await fetchBookings(currentPage.value);
+  } catch (error: any) {
+    assignError.value = error.response?.data?.error || 'Failed to assign class.';
+  } finally {
+    isAssigning.value = false;
+  }
+};
+
 const changePage = (page: number) => {
   if (page >= 1 && page <= lastPage.value) {
     fetchBookings(page);
@@ -87,19 +154,27 @@ const getStatusClass = (status: string) => {
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <h1 class="text-3xl font-bold tracking-tight text-white drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">Booking Management</h1>
 
-        <div class="flex items-center bg-gray-900 p-1 rounded-lg border border-gray-700">
-          <label for="status-filter" class="px-3 text-sm text-gray-400">Filter:</label>
-          <select
-            v-model="filterStatus"
-            id="status-filter"
-            class="bg-gray-800 text-white text-sm rounded-md border-0 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-purple-500 cursor-pointer"
+        <div class="flex items-center gap-3">
+          <div class="flex items-center bg-gray-900 p-1 rounded-lg border border-gray-700">
+            <label for="status-filter" class="px-3 text-sm text-gray-400">Filter:</label>
+            <select
+              v-model="filterStatus"
+              id="status-filter"
+              class="bg-gray-800 text-white text-sm rounded-md border-0 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-purple-500 cursor-pointer"
+            >
+              <option value="">All Statuses</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="pending_payment">Pending Payment</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <button
+            @click="openAssignModal"
+            class="px-4 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-xl hover:bg-purple-500 shadow-lg shadow-purple-500/30 transition-all whitespace-nowrap"
           >
-            <option value="">All Statuses</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="pending_payment">Pending Payment</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+            + Assign Class
+          </button>
         </div>
       </div>
 
@@ -189,6 +264,7 @@ const getStatusClass = (status: string) => {
       </div>
     </div>
 
+    <Teleport to="body">
     <div v-if="showLinkModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-md overflow-hidden transform transition-all scale-100">
         <div class="p-6">
@@ -226,5 +302,70 @@ const getStatusClass = (status: string) => {
         </div>
       </div>
     </div>
+    </Teleport>
+
+    <Teleport to="body">
+    <div v-if="showAssignModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-3xl overflow-hidden transform transition-all scale-100">
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-white mb-1">Assign Class</h3>
+          <p class="text-sm text-gray-400 mb-4">Directly schedule a confirmed class between a teacher and a student, bypassing payment.</p>
+
+          <div v-if="assignError" class="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-300 text-sm">{{ assignError }}</div>
+
+          <form @submit.prevent="handleAssignClass" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Teacher</label>
+              <select v-model="assignForm.teacher_id" required class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="" disabled>Select a teacher</option>
+                <option v-for="teacher in teachers" :key="teacher.user_id" :value="teacher.user_id">{{ teacher.user.full_name }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Student</label>
+              <select v-model="assignForm.student_id" required class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="" disabled>Select a student</option>
+                <option v-for="student in students" :key="student.id" :value="student.id">{{ student.full_name }} ({{ student.email }})</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-gray-300 mb-2">Language</label>
+              <select v-model="assignForm.language_id" required class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="" disabled>Select a language</option>
+                <option v-for="lang in languages" :key="lang.ID" :value="lang.ID">{{ lang.name }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Start Time</label>
+              <input type="datetime-local" v-model="assignForm.start_time" required class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 [color-scheme:dark]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">End Time</label>
+              <input type="datetime-local" v-model="assignForm.end_time" required class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 [color-scheme:dark]" />
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-gray-300 mb-2">Meeting Link (optional)</label>
+              <input type="url" v-model="assignForm.meeting_link" placeholder="Leave blank to use teacher's default link" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-600" />
+              <label v-if="assignForm.meeting_link" class="flex items-center gap-2 mt-2 cursor-pointer">
+                <input type="checkbox" v-model="assignForm.save_as_default_link" class="rounded border-gray-700 bg-black/50 text-purple-600 focus:ring-purple-500" />
+                <span class="text-xs text-gray-400">Save as this teacher's default meeting link for future classes</span>
+              </label>
+            </div>
+
+            <div class="sm:col-span-2 flex justify-end gap-3 pt-2">
+              <button type="button" @click="showAssignModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
+              <button type="submit" :disabled="isAssigning" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">
+                {{ isAssigning ? 'Assigning...' : 'Assign Class' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    </Teleport>
   </div>
 </template>

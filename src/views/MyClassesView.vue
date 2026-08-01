@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
+import { useAssignmentStore } from '@/stores/assignments';
+import { formatInUserTimeZone, currentTimeZone } from '@/utils/datetime';
+
+const authStore = useAuthStore();
+const assignmentStore = useAssignmentStore();
 
 interface Booking {
   ID: string;
@@ -15,7 +21,19 @@ interface Resource {
   file_url: string;
 }
 
+interface WaitlistEntry {
+  id: string;
+  availability_slot: {
+    id: string;
+    start_time: string;
+    end_time: string;
+    teacher: { full_name: string };
+    language: { name: string };
+  };
+}
+
 const bookings = ref<Booking[]>([]);
+const waitlistEntries = ref<WaitlistEntry[]>([]);
 const isLoading = ref(true);
 const actionMessage = ref({ type: '', text: '' });
 
@@ -31,7 +49,19 @@ const reviewData = ref({ rating: 5, comment: '' });
 const refundReason = ref('');
 const rescheduleData = ref({ new_start_time: '', new_end_time: '' });
 
-onMounted(async () => { await fetchBookings(); });
+const showAssignmentsModal = ref(false);
+const assignments = ref<any[]>([]);
+const isLoadingAssignments = ref(false);
+const submittingAssignmentId = ref<string | null>(null);
+const submissionForm = ref({ submission_text: '', submission_link: '' });
+const submissionFile = ref<File | null>(null);
+const isSubmittingAssignment = ref(false);
+const submissionViewerUrl = ref<string | null>(null);
+
+onMounted(async () => {
+  await fetchBookings();
+  await fetchWaitlist();
+});
 
 const fetchBookings = async () => {
   isLoading.value = true;
@@ -42,6 +72,37 @@ const fetchBookings = async () => {
     console.error('Failed to fetch bookings:', error);
   } finally {
     isLoading.value = false;
+  }
+};
+
+const fetchWaitlist = async () => {
+  try {
+    const response = await api.get('/waitlist/me');
+    waitlistEntries.value = response.data;
+  } catch (error) {
+    console.error('Failed to fetch waitlist:', error);
+  }
+};
+
+const handleLeaveWaitlist = async (entry: WaitlistEntry) => {
+  try {
+    await api.delete(`/availability/${entry.availability_slot.id}/waitlist`);
+    waitlistEntries.value = waitlistEntries.value.filter((e) => e.id !== entry.id);
+  } catch (error) {
+    console.error('Failed to leave waitlist:', error);
+  }
+};
+
+const handleReportNoShow = async (booking: Booking) => {
+  const reason = prompt('Briefly describe what happened (this will be sent to an admin for review):');
+  if (!reason || !reason.trim()) return;
+  try {
+    await api.post(`/bookings/${booking.ID}/report-no-show`, { reason: reason.trim() });
+    actionMessage.value = { type: 'success', text: 'No-show reported. An admin will review it.' };
+  } catch (error: any) {
+    actionMessage.value = { type: 'error', text: error.response?.data?.error || 'Failed to report no-show.' };
+  } finally {
+    setTimeout(() => actionMessage.value = { type: '', text: '' }, 3000);
   }
 };
 
@@ -85,6 +146,54 @@ const openResourcesModal = async (booking: Booking) => {
   }
 };
 
+const openAssignmentsModal = async (booking: Booking) => {
+  selectedBooking.value = booking;
+  showAssignmentsModal.value = true;
+  submittingAssignmentId.value = null;
+  isLoadingAssignments.value = true;
+  assignments.value = await assignmentStore.listBookingAssignments(booking.ID);
+  isLoadingAssignments.value = false;
+};
+
+const openSubmitForm = (assignment: any) => {
+  submittingAssignmentId.value = assignment.id;
+  submissionForm.value = {
+    submission_text: assignment.submission?.submission_text || '',
+    submission_link: assignment.submission?.submission_link || '',
+  };
+  submissionFile.value = null;
+};
+
+const handleSubmissionFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  submissionFile.value = target.files && target.files[0] ? target.files[0] : null;
+};
+
+const handleSubmitAssignment = async (assignment: any) => {
+  isSubmittingAssignment.value = true;
+  const result = await assignmentStore.submitAssignment(assignment.id, {
+    submission_text: submissionForm.value.submission_text,
+    submission_link: submissionForm.value.submission_link,
+    file: submissionFile.value || undefined,
+  });
+  isSubmittingAssignment.value = false;
+  if (result.success && selectedBooking.value) {
+    submittingAssignmentId.value = null;
+    assignments.value = await assignmentStore.listBookingAssignments(selectedBooking.value.ID);
+  } else if (!result.success) {
+    alert(result.message);
+  }
+};
+
+const viewSubmissionFile = async (assignment: any) => {
+  try {
+    submissionViewerUrl.value = await assignmentStore.viewSubmissionFileBlobUrl(assignment.id);
+  } catch (error) {
+    console.error('Failed to load submission file:', error);
+    alert('Failed to load submission file.');
+  }
+};
+
 const submitReview = async () => {
   if (!selectedBooking.value) return;
   await api.post(`/bookings/${selectedBooking.value.ID}/review`, reviewData.value);
@@ -104,8 +213,27 @@ const submitRefundRequest = async () => {
 };
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' });
+  return formatInUserTimeZone(dateString, authStore.user?.time_zone);
 };
+
+const displayTimeZone = computed(() => currentTimeZone(authStore.user?.time_zone));
+
+const downloadIcsBlob = async (url: string, filename: string) => {
+  try {
+    const response = await api.get(url, { responseType: 'blob' });
+    const objectUrl = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    console.error('Failed to download calendar file:', error);
+  }
+};
+
+const downloadBookingCalendar = (booking: Booking) => downloadIcsBlob(`/bookings/${booking.ID}/calendar.ics`, 'class.ics');
+const downloadAllCalendar = () => downloadIcsBlob('/bookings/me/calendar.ics', 'my-classes.ics');
 
 const openRescheduleModal = (booking: Booking) => {
   if (!booking.availability_slot) return;
@@ -143,7 +271,15 @@ const submitRescheduleRequest = async () => {
     </div>
 
     <div class="max-w-5xl mx-auto">
-      <h1 class="text-3xl font-bold tracking-tight text-white drop-shadow-[0_0_10px_rgba(168,85,247,0.5)] mb-8">My Classes</h1>
+      <div class="flex items-center justify-between mb-8 gap-4 flex-wrap">
+        <h1 class="text-3xl font-bold tracking-tight text-white drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">My Classes</h1>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-gray-500">Times shown in {{ displayTimeZone }}</span>
+          <button @click="downloadAllCalendar" class="px-3 py-2 text-xs font-semibold text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white transition-all">
+            Export All to Calendar
+          </button>
+        </div>
+      </div>
 
       <div v-if="actionMessage.text" :class="['mb-6 p-4 rounded-xl border flex items-center gap-3 shadow-lg animate-fade-in', actionMessage.type === 'success' ? 'bg-green-900/30 border-green-500/30 text-green-300' : 'bg-red-900/30 border-red-500/30 text-red-300']">
          <svg v-if="actionMessage.type === 'success'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -185,6 +321,8 @@ const submitRescheduleRequest = async () => {
 
               <div class="flex flex-wrap items-center gap-3">
                 <button @click="openResourcesModal(booking)" class="px-4 py-2 text-sm font-semibold text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white transition-all">Resources</button>
+                <button @click="openAssignmentsModal(booking)" class="px-4 py-2 text-sm font-semibold text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white transition-all">Assignments</button>
+                <button @click="downloadBookingCalendar(booking)" class="px-4 py-2 text-sm font-semibold text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white transition-all">Add to Calendar</button>
 
                 <a v-if="booking.meeting_link" :href="booking.meeting_link" target="_blank" class="px-4 py-2 text-sm font-bold text-white bg-green-600 rounded-lg shadow-lg shadow-green-500/20 hover:bg-green-500 hover:shadow-green-500/40 hover:-translate-y-0.5 transition-all">Join Class</a>
                 <span v-else class="px-4 py-2 text-sm font-medium text-gray-500 bg-black/30 border border-white/5 rounded-lg cursor-not-allowed">Link Pending</span>
@@ -214,12 +352,32 @@ const submitRescheduleRequest = async () => {
               </div>
               <div class="flex items-center gap-3">
                 <button @click="openResourcesModal(booking)" class="text-sm font-medium text-purple-400 hover:text-purple-300 hover:underline">Resources</button>
+                <button @click="openAssignmentsModal(booking)" class="text-sm font-medium text-purple-400 hover:text-purple-300 hover:underline">Assignments</button>
                 <button v-if="booking.status === 'completed'" @click="openReviewModal(booking)" class="px-4 py-2 text-sm font-semibold text-blue-400 bg-blue-900/20 border border-blue-500/20 rounded-lg hover:bg-blue-900/40 transition-all">Leave Review</button>
+                <button v-if="booking.status === 'completed'" @click="handleReportNoShow(booking)" class="text-sm font-medium text-gray-500 hover:text-red-400">Report No-Show</button>
               </div>
             </div>
           </div>
         </div>
         <p v-else class="text-gray-500 bg-black/20 p-6 rounded-xl border border-white/5 border-dashed text-center">You have no past class history.</p>
+
+        <template v-if="waitlistEntries.length > 0">
+          <h2 class="text-xl font-bold text-white mb-4 mt-10 flex items-center gap-2">
+             <span class="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_8px_#eab308]"></span> Waitlisted Classes
+          </h2>
+          <div class="space-y-4">
+            <div v-for="entry in waitlistEntries" :key="entry.id" class="bg-gray-900/40 backdrop-blur-sm p-5 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div>
+                <p class="font-bold text-white">{{ entry.availability_slot.language.name }}</p>
+                <p class="text-gray-400 text-sm">with {{ entry.availability_slot.teacher.full_name }}</p>
+                <p class="text-xs text-gray-500 font-mono mt-1">{{ formatDate(entry.availability_slot.start_time) }}</p>
+              </div>
+              <button @click="handleLeaveWaitlist(entry)" class="px-4 py-2 text-sm font-semibold text-red-400 bg-red-900/20 border border-red-500/20 rounded-lg hover:bg-red-900/40 transition-all">
+                Leave Waitlist
+              </button>
+            </div>
+          </div>
+        </template>
       </div>
 
       <Teleport to="body">
@@ -326,6 +484,80 @@ const submitRescheduleRequest = async () => {
                  <p class="text-gray-500 text-sm">No resources uploaded yet.</p>
               </div>
             </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="showAssignmentsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+          <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-2xl max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-white mb-4">Assignments</h3>
+
+              <div v-if="isLoadingAssignments" class="text-center text-gray-400 py-4">Loading...</div>
+              <div v-else-if="assignments.length > 0" class="space-y-3">
+                <div v-for="assignment in assignments" :key="assignment.id" class="bg-gray-900/60 border border-white/10 rounded-xl p-4">
+                  <div class="flex justify-between items-start gap-3">
+                    <div>
+                      <p class="font-bold text-white">{{ assignment.title }}</p>
+                      <p class="text-sm text-gray-400 mt-1">{{ assignment.instructions }}</p>
+                      <p v-if="assignment.due_date" class="text-xs text-gray-500 mt-1">Due: {{ formatDate(assignment.due_date) }}</p>
+                    </div>
+                    <span v-if="assignment.submission?.grade != null" class="text-xs px-2 py-1 rounded-full bg-green-900/30 text-green-400 border border-green-500/30 whitespace-nowrap">
+                      Graded: {{ assignment.submission.grade }}/100
+                    </span>
+                    <span v-else-if="assignment.submission" class="text-xs px-2 py-1 rounded-full bg-yellow-900/30 text-yellow-400 border border-yellow-500/30 whitespace-nowrap">
+                      Submitted
+                    </span>
+                    <span v-else class="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-400 border border-gray-700 whitespace-nowrap">
+                      Not submitted
+                    </span>
+                  </div>
+
+                  <div v-if="assignment.submission?.feedback" class="mt-3 pt-3 border-t border-white/5 text-sm">
+                    <p class="text-gray-500 text-xs mb-1">Teacher feedback:</p>
+                    <p class="text-gray-300">{{ assignment.submission.feedback }}</p>
+                  </div>
+
+                  <button v-if="assignment.submission?.file_name" @click="viewSubmissionFile(assignment)" class="mt-2 text-xs text-purple-400 hover:underline">
+                    View my submitted file: {{ assignment.submission.file_name }}
+                  </button>
+
+                  <div v-if="submittingAssignmentId === assignment.id" class="mt-3 pt-3 border-t border-white/5 space-y-2">
+                    <textarea v-model="submissionForm.submission_text" rows="2" placeholder="Write your answer..." class="w-full px-3 py-2 bg-black/50 border border-gray-700 text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+                    <input v-model="submissionForm.submission_link" type="url" placeholder="Or paste a link (optional)" class="w-full px-3 py-2 bg-black/50 border border-gray-700 text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <input type="file" @change="handleSubmissionFileSelect" class="w-full text-sm text-gray-300" />
+                    <div class="flex gap-2">
+                      <button @click="handleSubmitAssignment(assignment)" :disabled="isSubmittingAssignment" class="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 disabled:opacity-50">
+                        {{ isSubmittingAssignment ? 'Submitting...' : 'Submit' }}
+                      </button>
+                      <button @click="submittingAssignmentId = null" class="px-3 py-1.5 text-xs text-gray-300 hover:text-white">Cancel</button>
+                    </div>
+                  </div>
+                  <button v-else @click="openSubmitForm(assignment)" class="mt-2 text-xs font-semibold text-purple-400 hover:text-purple-300">
+                    {{ assignment.submission ? 'Update Submission' : 'Submit Assignment' }}
+                  </button>
+                </div>
+              </div>
+              <p v-else class="text-gray-500 text-center py-6">No assignments yet.</p>
+
+              <div class="flex justify-end pt-4">
+                <button @click="showAssignmentsModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="submissionViewerUrl" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+          <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl h-[80vh] overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-white/10 flex justify-end">
+              <button @click="submissionViewerUrl = null" class="text-gray-400 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            <iframe :src="submissionViewerUrl" class="flex-grow border-0"></iframe>
           </div>
         </div>
       </Teleport>

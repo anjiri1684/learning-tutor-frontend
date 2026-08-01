@@ -23,6 +23,7 @@ interface AvailabilitySlot {
   language_id: string;
   max_students: number;
   current_students: number;
+  status: string;
 }
 
 const route = useRoute();
@@ -32,6 +33,8 @@ const bookingStore = useBookingStore();
 const teacher = ref<TeacherProfile | null>(null);
 const availability = ref<AvailabilitySlot[]>([]);
 const isLoading = ref(true);
+const waitlistedSlotIds = ref<Set<string>>(new Set());
+const waitlistMessage = ref('');
 
 onMounted(async () => {
   const teacherId = route.params.id as string;
@@ -56,9 +59,20 @@ onMounted(async () => {
 });
 
 const handleSelectSlot = (slot: AvailabilitySlot) => {
-  if (!teacher.value) return;
+  if (!teacher.value || slot.status !== 'available') return;
   bookingStore.setBookingContext(teacher.value, slot);
   router.push('/dashboard/book');
+};
+
+const handleJoinWaitlist = async (slot: AvailabilitySlot) => {
+  waitlistMessage.value = '';
+  try {
+    await api.post(`/availability/${slot.id}/waitlist`);
+    waitlistedSlotIds.value.add(slot.id);
+    waitlistMessage.value = "You're on the waitlist. We'll notify you if a spot opens up.";
+  } catch (error: any) {
+    waitlistMessage.value = error.response?.data?.error || 'Failed to join waitlist.';
+  }
 };
 
 const handleStartConversation = async () => {
@@ -151,12 +165,17 @@ const formatTime = (dateString: string) => {
              Available Slots
           </h2>
 
+          <div v-if="waitlistMessage" class="mb-4 p-3 rounded-xl bg-purple-900/20 border border-purple-500/30 text-purple-300 text-sm">
+            {{ waitlistMessage }}
+          </div>
+
           <div v-if="availability.length > 0" class="space-y-3">
-            <button
+            <div
               v-for="slot in availability"
               :key="slot.id"
+              class="w-full text-left p-4 bg-black/40 border border-gray-700 rounded-xl transition-all group relative overflow-hidden"
+              :class="slot.status === 'available' ? 'hover:border-purple-500 hover:bg-purple-900/10 cursor-pointer' : ''"
               @click="handleSelectSlot(slot)"
-              class="w-full text-left p-4 bg-black/40 border border-gray-700 rounded-xl hover:border-purple-500 hover:bg-purple-900/10 transition-all group relative overflow-hidden"
             >
               <div class="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
@@ -170,16 +189,28 @@ const formatTime = (dateString: string) => {
                     </span>
                  </div>
 
-                 <div>
-                    <span v-if="slot.max_students > 1" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-900/30 text-green-400 border border-green-500/30">
+                 <div class="flex items-center justify-between gap-2">
+                    <span v-if="slot.status !== 'available'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-900/30 text-red-400 border border-red-500/30">
+                       Full
+                    </span>
+                    <span v-else-if="slot.max_students > 1" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-900/30 text-green-400 border border-green-500/30">
                        Group Class ({{ slot.max_students - slot.current_students }} left)
                     </span>
                     <span v-else class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900/30 text-blue-400 border border-blue-500/30">
                        Private Class (1-on-1)
                     </span>
+
+                    <button
+                      v-if="slot.status !== 'available' && !waitlistedSlotIds.has(slot.id)"
+                      @click.stop="handleJoinWaitlist(slot)"
+                      class="px-3 py-1.5 text-xs font-semibold text-yellow-400 bg-yellow-900/20 border border-yellow-500/20 rounded-lg hover:bg-yellow-900/40 transition-all relative z-10"
+                    >
+                      Join Waitlist
+                    </button>
+                    <span v-else-if="waitlistedSlotIds.has(slot.id)" class="text-xs text-gray-500">On waitlist</span>
                  </div>
               </div>
-            </button>
+            </div>
           </div>
 
           <div v-else class="text-center py-8 border border-dashed border-gray-700 rounded-xl bg-black/20">

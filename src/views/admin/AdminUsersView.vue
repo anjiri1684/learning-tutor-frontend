@@ -2,7 +2,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import api from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 
+const authStore = useAuthStore();
 const users = ref<any[]>([]);
 const isLoading = ref(true);
 const updatingUserId = ref<string | null>(null);
@@ -13,6 +15,107 @@ const pagination = ref({
   totalUsers: 0,
   totalPages: 1,
 });
+
+const showCreateModal = ref(false);
+const showEditModal = ref(false);
+const isSaving = ref(false);
+const formError = ref('');
+const editingUser = ref<any>(null);
+
+const showImportModal = ref(false);
+const importFile = ref<File | null>(null);
+const isImporting = ref(false);
+const importResult = ref<{ created: any[]; skipped: any[] } | null>(null);
+const importError = ref('');
+
+const createForm = ref({
+  full_name: '',
+  email: '',
+  password: '',
+  role: 'student',
+  headline: '',
+  bio: '',
+});
+
+const editForm = ref({
+  full_name: '',
+  email: '',
+  role: 'student',
+});
+
+const openCreateModal = () => {
+  createForm.value = { full_name: '', email: '', password: '', role: 'student', headline: '', bio: '' };
+  formError.value = '';
+  showCreateModal.value = true;
+};
+
+const submitCreateUser = async () => {
+  isSaving.value = true;
+  formError.value = '';
+  try {
+    await api.post('/admin/users', createForm.value);
+    showCreateModal.value = false;
+    await fetchUsers();
+  } catch (error: any) {
+    formError.value = error?.response?.data?.error || 'Failed to create user.';
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const openImportModal = () => {
+  importFile.value = null;
+  importResult.value = null;
+  importError.value = '';
+  showImportModal.value = true;
+};
+
+const handleImportFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  importFile.value = target.files && target.files[0] ? target.files[0] : null;
+};
+
+const submitImport = async () => {
+  if (!importFile.value) return;
+  isImporting.value = true;
+  importError.value = '';
+  importResult.value = null;
+  try {
+    const formData = new FormData();
+    formData.append('file', importFile.value);
+    const response = await api.post('/admin/users/bulk-import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    importResult.value = { created: response.data.created || [], skipped: response.data.skipped || [] };
+    await fetchUsers();
+  } catch (error: any) {
+    importError.value = error.response?.data?.error || 'Failed to import users.';
+  } finally {
+    isImporting.value = false;
+  }
+};
+
+const openEditModal = (user: any) => {
+  editingUser.value = user;
+  editForm.value = { full_name: user.full_name, email: user.email, role: user.role };
+  formError.value = '';
+  showEditModal.value = true;
+};
+
+const submitEditUser = async () => {
+  if (!editingUser.value) return;
+  isSaving.value = true;
+  formError.value = '';
+  try {
+    await api.put(`/admin/users/${editingUser.value.id}`, editForm.value);
+    showEditModal.value = false;
+    await fetchUsers();
+  } catch (error: any) {
+    formError.value = error?.response?.data?.error || 'Failed to update user.';
+  } finally {
+    isSaving.value = false;
+  }
+};
 
 const fetchUsers = async () => {
   isLoading.value = true;
@@ -60,7 +163,7 @@ const toggleStatus = async (user: any) => {
 };
 
 const handleDeleteUser = async (userId: string) => {
-  if (confirm('Are you sure you want to permanently delete this teacher and all their data? This action cannot be undone.')) {
+  if (confirm('Are you sure you want to permanently delete this user and all their data? This action cannot be undone.')) {
     try {
       await api.delete(`/admin/users/${userId}`);
       await fetchUsers();
@@ -68,6 +171,20 @@ const handleDeleteUser = async (userId: string) => {
       console.error('Failed to delete user:', error);
       alert('Failed to delete user.');
     }
+  }
+};
+
+const isImpersonating = ref(false);
+const handleImpersonate = async (user: any) => {
+  if (!confirm(`View the platform as ${user.full_name}? You'll be able to return to your admin account at any time.`)) return;
+  isImpersonating.value = true;
+  try {
+    const response = await api.post(`/admin/users/${user.id}/impersonate`);
+    await authStore.startImpersonation(response.data.token, response.data.user);
+  } catch (error: any) {
+    alert(error.response?.data?.error || 'Failed to impersonate user.');
+  } finally {
+    isImpersonating.value = false;
   }
 };
 
@@ -89,18 +206,32 @@ const changePage = (newPage: number) => {
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
         <h1 class="text-3xl font-bold tracking-tight text-white drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">User Management</h1>
 
-        <div class="relative w-full md:w-80">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+          <div class="relative w-full md:w-80">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="Search by name or email..."
+              class="block w-full pl-10 pr-3 py-2.5 bg-gray-900 border border-gray-700 rounded-xl leading-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm transition-all shadow-sm"
+            />
           </div>
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="Search by name or email..."
-            class="block w-full pl-10 pr-3 py-2.5 bg-gray-900 border border-gray-700 rounded-xl leading-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm transition-all shadow-sm"
-          />
+          <button
+            @click="openCreateModal"
+            class="whitespace-nowrap px-4 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-xl hover:bg-purple-500 shadow-lg shadow-purple-500/30 transition-all"
+          >
+            + Create User
+          </button>
+          <button
+            @click="openImportModal"
+            class="whitespace-nowrap px-4 py-2.5 text-sm font-bold text-gray-300 bg-gray-800 border border-gray-700 rounded-xl hover:bg-gray-700 hover:text-white transition-all"
+          >
+            Bulk Import (CSV)
+          </button>
         </div>
       </div>
 
@@ -170,7 +301,23 @@ const changePage = (newPage: number) => {
                   </button>
 
                   <button
-                    v-if="user.role === 'teacher'"
+                    @click="openEditModal(user)"
+                    class="text-xs font-medium text-blue-400 border border-blue-500/30 hover:bg-blue-500/10 px-3 py-1.5 rounded-lg transition-all"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    v-if="user.id !== authStore.user?.id"
+                    :disabled="isImpersonating"
+                    @click="handleImpersonate(user)"
+                    class="text-xs font-medium text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+                  >
+                    View As
+                  </button>
+
+                  <button
+                    v-if="user.id !== authStore.user?.id"
                     @click="handleDeleteUser(user.id)"
                     class="text-xs font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all"
                   >
@@ -209,5 +356,121 @@ const changePage = (newPage: number) => {
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div v-if="showCreateModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-2xl overflow-hidden">
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Create User</h3>
+            <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-300 text-sm">{{ formError }}</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                <input v-model="createForm.full_name" type="text" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                <input v-model="createForm.email" type="email" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                <input v-model="createForm.password" type="password" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Role</label>
+                <select v-model="createForm.role" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div v-if="createForm.role === 'teacher'">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Headline</label>
+                <input v-model="createForm.headline" type="text" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div v-if="createForm.role === 'teacher'" class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+                <textarea v-model="createForm.bio" rows="2" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+              <div class="sm:col-span-2 flex justify-end gap-3 pt-2">
+                <button @click="showCreateModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
+                <button @click="submitCreateUser" :disabled="isSaving" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">
+                  {{ isSaving ? 'Creating...' : 'Create User' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showImportModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-lg overflow-hidden">
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-white mb-2">Bulk Import Users (CSV)</h3>
+            <p class="text-sm text-gray-400 mb-4">
+              Columns: <code class="text-purple-300">full_name,email,password,role</code> (role must be <code class="text-purple-300">student</code> or <code class="text-purple-300">teacher</code>). A header row is optional.
+            </p>
+
+            <div v-if="importError" class="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-300 text-sm">{{ importError }}</div>
+
+            <input type="file" accept=".csv,text/csv" @change="handleImportFileSelect" class="w-full text-sm text-gray-300 mb-4" />
+
+            <div v-if="importResult" class="mb-4 space-y-2 max-h-64 overflow-y-auto">
+              <p class="text-sm text-green-400">Created {{ importResult.created.length }} user(s).</p>
+              <div v-if="importResult.skipped.length > 0">
+                <p class="text-sm text-yellow-400 mb-1">Skipped {{ importResult.skipped.length }}:</p>
+                <div v-for="s in importResult.skipped" :key="s.row" class="text-xs text-gray-400 bg-black/30 border border-white/5 rounded px-2 py-1 mb-1">
+                  Row {{ s.row }}<span v-if="s.email"> ({{ s.email }})</span>: {{ s.reason }}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+              <button @click="showImportModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Close</button>
+              <button @click="submitImport" :disabled="isImporting || !importFile" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">
+                {{ isImporting ? 'Importing...' : 'Import' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showEditModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-md overflow-hidden">
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Edit User</h3>
+            <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-300 text-sm">{{ formError }}</div>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                <input v-model="editForm.full_name" type="text" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                <input v-model="editForm.email" type="email" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Role</label>
+                <select v-model="editForm.role" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div class="flex justify-end gap-3 pt-2">
+                <button @click="showEditModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
+                <button @click="submitEditUser" :disabled="isSaving" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">
+                  {{ isSaving ? 'Saving...' : 'Save Changes' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

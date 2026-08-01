@@ -19,6 +19,7 @@ import MyMessagesView from '@/views/MyMessagesView.vue'
 import ExamListView from '@/views/ExamListView.vue'
 import ExamResultsView from '@/views/ExamResultsView.vue'
 import ApplyToTeachView from '@/views/ApplyToTeachView.vue'
+import MyLibraryView from '@/views/MyLibraryView.vue'
 import TeacherLayout from '@/layouts/TeacherLayout.vue'
 import TeacherClassesView from '@/views/teacher/TeacherClassesView.vue'
 import TeacherAvailabilityView from '@/views/teacher/TeacherAvailabilityView.vue'
@@ -40,6 +41,10 @@ import AdminRefundsView from '@/views/admin/AdminRefundsView.vue'
 import AdminExamsView from '@/views/admin/AdminExamsView.vue'
 import AdminPaymentsView from '@/views/admin/AdminPaymentsView.vue'
 import AdminReviewsView from '@/views/admin/AdminReviewsView.vue'
+import AdminSettingsView from '@/views/admin/AdminSettingsView.vue'
+import AdminAuditLogView from '@/views/admin/AdminAuditLogView.vue'
+import TeacherLibraryView from '@/views/teacher/TeacherLibraryView.vue'
+import AdminLibraryView from '@/views/admin/AdminLibraryView.vue'
 import MyProgressView from '@/views/MyProgressView.vue'
 import TeacherAnalyticsView from '@/views/teacher/TeacherAnalyticsView.vue'
 import LandingPageView from '@/views/LandingPageView.vue'
@@ -138,6 +143,12 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'my-library',
+          name: 'my-library',
+          component: MyLibraryView,
+          meta: { requiresAuth: true },
+        },
+        {
           path: '/teacher/:id',
           name: 'teacher-profile',
           component: TeacherProfileView,
@@ -164,6 +175,7 @@ const router = createRouter({
         { path: 'analytics', name: 'teacher-analytics', component: TeacherAnalyticsView },
         { path: 'messages', name: 'teacher-messages', component: MyMessagesView },
         { path: 'reviews', name: 'teacher-reviews', component: TeacherReviewsView },
+        { path: 'library', name: 'teacher-library', component: TeacherLibraryView },
         {
           path: 'student-progress/:studentId',
           name: 'teacher-student-progress',
@@ -208,6 +220,9 @@ const router = createRouter({
         { path: 'exams', name: 'admin-exams', component: AdminExamsView },
         { path: 'payments', name: 'admin-payments', component: AdminPaymentsView },
         { path: 'reviews', name: 'admin-reviews', component: AdminReviewsView },
+        { path: 'settings', name: 'admin-settings', component: AdminSettingsView },
+        { path: 'library', name: 'admin-library', component: AdminLibraryView },
+        { path: 'audit-log', name: 'admin-audit-log', component: AdminAuditLogView },
       ],
     },
     { path: '/login', name: 'login', component: LoginView },

@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { RouterLink, useRouter } from 'vue-router';
+import NotificationBell from '@/components/NotificationBell.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -19,7 +20,8 @@ const navLinks = [
   { name: 'My Earnings', path: '/teacher/earnings' },
   { name: 'My Analytics', path: '/teacher/analytics' },
   { name: 'My Reviews', path: '/teacher/reviews' },
-  // { name: 'My Messages', path: '/teacher/messages' },
+  { name: 'My Messages', path: '/teacher/messages' },
+  { name: 'Resource Library', path: '/teacher/library' },
   { name: 'My Profile', path: '/teacher/profile' },
 ];
 
@@ -45,7 +47,13 @@ const getUserInitials = () => {
       <div class="p-6 border-b border-white/5 bg-white/[0.02]">
          <div class="flex items-center gap-4">
             <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 p-[2px] shadow-md shadow-purple-500/20">
-               <div class="h-full w-full rounded-full bg-gray-900 flex items-center justify-center text-xs font-bold text-white">
+               <img
+                  v-if="authStore.user?.profile_picture_url"
+                  :src="authStore.user.profile_picture_url"
+                  class="h-full w-full rounded-full object-cover border border-gray-900"
+                  alt="Profile"
+               />
+               <div v-else class="h-full w-full rounded-full bg-gray-900 flex items-center justify-center text-xs font-bold text-white">
                   {{ getUserInitials() }}
                </div>
             </div>
@@ -89,10 +97,17 @@ const getUserInitials = () => {
              <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">PYH</div>
              <h1 class="text-lg font-bold text-white">Teacher Portal</h1>
           </div>
-          <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="text-gray-300 hover:text-white focus:outline-none p-2 rounded-lg hover:bg-white/5">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-          </button>
+          <div class="flex items-center gap-1">
+            <NotificationBell />
+            <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="text-gray-300 hover:text-white focus:outline-none p-2 rounded-lg hover:bg-white/5">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+          </div>
         </header>
+
+        <div class="hidden md:flex justify-end p-4 pb-0 relative z-20">
+          <NotificationBell />
+        </div>
 
         <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-8 relative z-10 scroll-smooth custom-scrollbar">
             <router-view />

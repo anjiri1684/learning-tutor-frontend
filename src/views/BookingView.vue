@@ -6,12 +6,14 @@ import { useCurrencyStore } from '@/stores/currency';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { currentTimeZone } from '@/utils/datetime';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const PaystackPop: any;
 
 const bookingStore = useBookingStore();
 const currencyStore = useCurrencyStore();
+const authStore = useAuthStore();
 const router = useRouter();
 const paymentProvider = ref('mpesa');
 const mpesaPhoneNumber = ref('');
@@ -109,7 +111,12 @@ const handlePaystackPayment = async () => {
   }
 };
 
-const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString([], {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: authStore.user?.time_zone || undefined,
+});
+const displayTimeZone = computed(() => currentTimeZone(authStore.user?.time_zone));
 </script>
 
 <template>
@@ -146,6 +153,7 @@ const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeStri
                     <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     {{ formatTime(bookingStore.selectedSlot.start_time) }} - {{ formatTime(bookingStore.selectedSlot.end_time) }}
                  </p>
+                 <p class="text-xs text-gray-500 mt-1">({{ displayTimeZone }})</p>
               </div>
            </div>
 

@@ -5,7 +5,7 @@ import api from '@/services/api';
 
 interface Language {
   ID: string;
-  Name: string;
+  name: string;
 }
 interface Teacher {
   user_id: string;
@@ -84,7 +84,7 @@ watch(filters, fetchTeachers, { deep: true });
                 class="appearance-none w-full bg-black/50 border border-gray-700 text-white py-3 px-4 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm cursor-pointer transition-all"
              >
                <option value="">All Languages</option>
-               <option v-for="lang in languages" :key="lang.ID" :value="lang.ID">{{ lang.Name }}</option>
+               <option v-for="lang in languages" :key="lang.ID" :value="lang.ID">{{ lang.name }}</option>
              </select>
              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -155,7 +155,7 @@ watch(filters, fetchTeachers, { deep: true });
                 :key="language.ID"
                 class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-purple-900/30 text-purple-300 border border-purple-500/20"
               >
-                {{ language.Name }}
+                {{ language.name }}
               </span>
             </div>
           </div>

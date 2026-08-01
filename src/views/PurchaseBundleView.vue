@@ -12,7 +12,7 @@ interface Bundle {
   Price: number;
   NumberOfClasses: number;
   language: {
-    Name: string;
+    name: string;
   };
 }
 
@@ -175,7 +175,7 @@ const getPriceInKES = (priceUSD: number) => {
           <div class="absolute -right-12 -top-12 w-24 h-24 bg-purple-500/20 blur-2xl rounded-full group-hover:bg-purple-500/30 transition-colors"></div>
 
           <h2 class="text-2xl font-bold text-white mb-1 relative z-10">{{ bundle.Name }}</h2>
-          <p class="text-sm text-purple-400 font-medium mb-6 relative z-10 uppercase tracking-wide">{{ bundle.language.Name }}</p>
+          <p class="text-sm text-purple-400 font-medium mb-6 relative z-10 uppercase tracking-wide">{{ bundle.language.name }}</p>
 
           <div class="my-6 flex-grow border-t border-b border-white/5 py-6">
             <div class="flex items-baseline">

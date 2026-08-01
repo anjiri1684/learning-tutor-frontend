@@ -15,6 +15,7 @@ interface Application {
   headline: string;
   bio: string;
   status: string;
+  verification_doc_url?: string;
   user: User;
 }
 
@@ -109,6 +110,14 @@ const formatDate = (dateString: string) =>
               <div class="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed bg-black/20 p-4 rounded-xl border border-white/5">
                  {{ app.bio }}
               </div>
+            </div>
+
+            <div v-if="app.verification_doc_url">
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Verification Document</p>
+              <a :href="app.verification_doc_url" target="_blank" class="inline-flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 hover:underline">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                View submitted document
+              </a>
             </div>
           </div>
 

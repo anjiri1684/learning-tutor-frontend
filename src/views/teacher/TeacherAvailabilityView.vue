@@ -21,6 +21,8 @@ const newSlot = ref({
   end_time: '',
   language_id: '',
   max_students: 1,
+  is_recurring: false,
+  repeat_weeks: 4,
 });
 
 const fetchData = async () => {
@@ -53,9 +55,18 @@ const handleAddSlot = async () => {
       language_id: newSlot.value.language_id,
       max_students: Number(newSlot.value.max_students),
     };
-    await api.post('/teacher/availability', payload);
+
+    if (newSlot.value.is_recurring) {
+      await api.post('/teacher/availability/recurring', {
+        ...payload,
+        repeat_weeks: Number(newSlot.value.repeat_weeks),
+      });
+    } else {
+      await api.post('/teacher/availability', payload);
+    }
+
     showAddModal.value = false;
-    newSlot.value = { start_time: '', end_time: '', language_id: '', max_students: 1 };
+    newSlot.value = { start_time: '', end_time: '', language_id: '', max_students: 1, is_recurring: false, repeat_weeks: 4 };
     await fetchData();
   } catch (error) {
     console.error('Failed to add slot:', error);
@@ -203,6 +214,24 @@ const formatDate = (dateString: string) => new Date(dateString).toLocaleString([
                   required
                   class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all [color-scheme:dark]"
                 />
+              </div>
+
+              <div class="bg-black/30 border border-white/5 rounded-xl p-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" v-model="newSlot.is_recurring" class="rounded border-gray-700 bg-black/50 text-purple-600 focus:ring-purple-500" />
+                  <span class="text-sm font-medium text-gray-300">Repeat weekly</span>
+                </label>
+                <div v-if="newSlot.is_recurring" class="mt-3">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">Number of weeks</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="52"
+                    v-model="newSlot.repeat_weeks"
+                    class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">Creates a slot at this same day-of-week and time for the next {{ newSlot.repeat_weeks }} weeks.</p>
+                </div>
               </div>
 
               <div class="flex justify-end gap-4 mt-8 pt-4 border-t border-gray-800">

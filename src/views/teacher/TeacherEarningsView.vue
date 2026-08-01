@@ -9,15 +9,37 @@ const isLoading = ref(true);
 const showModal = ref(false);
 const payoutAmount = ref(0);
 
+const payoutMethodForm = ref({
+  payout_method: 'bank',
+  payout_account_name: '',
+  payout_account_number: '',
+  payout_bank_name: '',
+});
+const isSavingPayoutMethod = ref(false);
+const payoutMethodMessage = ref({ type: '', text: '' });
+const hasPayoutMethod = ref(false);
+
 const fetchData = async () => {
   isLoading.value = true;
   try {
-    const [balanceRes, requestsRes] = await Promise.all([
+    const [balanceRes, requestsRes, profileRes] = await Promise.all([
       api.get('/teacher/earnings'),
       api.get('/teacher/payouts/requests'),
+      api.get('/teacher/profile/me'),
     ]);
     balance.value = balanceRes.data.current_balance;
     requests.value = requestsRes.data;
+
+    const profile = profileRes.data;
+    if (profile.payout_method) {
+      payoutMethodForm.value = {
+        payout_method: profile.payout_method,
+        payout_account_name: profile.payout_account_name || '',
+        payout_account_number: profile.payout_account_number || '',
+        payout_bank_name: profile.payout_bank_name || '',
+      };
+      hasPayoutMethod.value = true;
+    }
   } catch (error) {
     console.error('Failed to fetch earnings data:', error);
   } finally {
@@ -26,6 +48,20 @@ const fetchData = async () => {
 };
 
 onMounted(fetchData);
+
+const handleSavePayoutMethod = async () => {
+  isSavingPayoutMethod.value = true;
+  payoutMethodMessage.value = { type: '', text: '' };
+  try {
+    await api.put('/teacher/payouts/method', payoutMethodForm.value);
+    hasPayoutMethod.value = true;
+    payoutMethodMessage.value = { type: 'success', text: 'Payout method saved.' };
+  } catch (error: any) {
+    payoutMethodMessage.value = { type: 'error', text: error.response?.data?.error || 'Failed to save payout method.' };
+  } finally {
+    isSavingPayoutMethod.value = false;
+  }
+};
 
 const handleRequestPayout = async () => {
   if (payoutAmount.value <= 0 || payoutAmount.value > balance.value) {
@@ -78,12 +114,50 @@ const getStatusStyles = (status: string) => {
 
           <button
             @click="showModal = true"
-            class="px-8 py-3 font-bold text-white bg-purple-600 rounded-xl shadow-lg shadow-purple-500/30 hover:bg-purple-500 hover:shadow-purple-500/50 hover:-translate-y-0.5 transition-all flex items-center gap-2"
+            :disabled="!hasPayoutMethod"
+            :title="!hasPayoutMethod ? 'Add a payout method below first' : ''"
+            class="px-8 py-3 font-bold text-white bg-purple-600 rounded-xl shadow-lg shadow-purple-500/30 hover:bg-purple-500 hover:shadow-purple-500/50 hover:-translate-y-0.5 transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             Request Payout
           </button>
         </div>
+      </div>
+
+      <div class="bg-gray-900/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 shadow-xl mb-8">
+        <h2 class="text-xl font-bold text-white mb-1">Payout Method</h2>
+        <p class="text-sm text-gray-400 mb-6">Where your payouts should be sent. Required before requesting a payout.</p>
+
+        <div v-if="payoutMethodMessage.text" :class="['p-3 mb-4 text-sm rounded-xl border', payoutMethodMessage.type === 'success' ? 'bg-green-900/30 border-green-500/30 text-green-300' : 'bg-red-900/30 border-red-500/30 text-red-300']">
+          {{ payoutMethodMessage.text }}
+        </div>
+
+        <form @submit.prevent="handleSavePayoutMethod" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">Method</label>
+            <select v-model="payoutMethodForm.payout_method" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="bank">Bank Transfer</option>
+              <option value="mpesa">M-Pesa</option>
+            </select>
+          </div>
+          <div v-if="payoutMethodForm.payout_method === 'bank'">
+            <label class="block text-sm font-medium text-gray-400 mb-2">Bank Name</label>
+            <input v-model="payoutMethodForm.payout_bank_name" type="text" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">Account Name</label>
+            <input v-model="payoutMethodForm.payout_account_name" type="text" required class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">{{ payoutMethodForm.payout_method === 'mpesa' ? 'M-Pesa Phone Number' : 'Account Number' }}</label>
+            <input v-model="payoutMethodForm.payout_account_number" type="text" required class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          </div>
+          <div class="sm:col-span-2">
+            <button type="submit" :disabled="isSavingPayoutMethod" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">
+              {{ isSavingPayoutMethod ? 'Saving...' : 'Save Payout Method' }}
+            </button>
+          </div>
+        </form>
       </div>
 
       <div class="bg-gray-900/60 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl overflow-hidden">

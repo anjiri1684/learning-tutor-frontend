@@ -2,11 +2,29 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import api from '@/services/api';
+import { uploadImage } from '@/services/upload';
 
 const headline = ref('');
 const bio = ref('');
+const verificationDocUrl = ref('');
+const isUploadingDoc = ref(false);
 const isSubmitting = ref(false);
 const message = ref({ type: '', text: '' });
+
+const handleDocSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files[0]) {
+    isUploadingDoc.value = true;
+    try {
+      verificationDocUrl.value = await uploadImage(target.files[0]);
+    } catch (error) {
+      console.error(error);
+      message.value = { type: 'error', text: 'Failed to upload verification document.' };
+    } finally {
+      isUploadingDoc.value = false;
+    }
+  }
+};
 
 const handleApply = async () => {
   isSubmitting.value = true;
@@ -16,6 +34,7 @@ const handleApply = async () => {
     await api.post('/teacher/apply', {
       headline: headline.value,
       bio: bio.value,
+      verification_doc_url: verificationDocUrl.value,
     });
     message.value = { type: 'success', text: 'Your application has been submitted! Our team will review it shortly.' };
   } catch (error: any) {
@@ -78,6 +97,18 @@ const handleApply = async () => {
               class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all placeholder-gray-600"
               placeholder="Tell students about your teaching style, experience, and what makes your classes great."
             ></textarea>
+          </div>
+
+          <div>
+            <label for="verification-doc" class="block text-sm font-medium text-gray-300 mb-2">Verification Document (certificate, ID, or teaching credential)</label>
+            <input
+              id="verification-doc"
+              type="file"
+              accept="image/png, image/jpeg"
+              @change="handleDocSelect"
+              class="w-full text-sm text-gray-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-gray-800 file:text-white hover:file:bg-gray-700 file:cursor-pointer cursor-pointer"
+            />
+            <p class="text-xs text-gray-500 mt-2">{{ isUploadingDoc ? 'Uploading...' : verificationDocUrl ? 'Uploaded.' : 'Optional, but speeds up approval.' }}</p>
           </div>
 
           <div class="pt-2">

@@ -20,6 +20,7 @@ interface User {
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token') || null)
   const user = ref<User | null>(JSON.parse(localStorage.getItem('user') || 'null'))
+  const isImpersonating = ref<boolean>(!!localStorage.getItem('impersonator_token'))
 
   const setToken = (newToken: string) => {
     token.value = newToken
@@ -131,7 +132,46 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    localStorage.removeItem('impersonator_token')
+    localStorage.removeItem('impersonator_user')
+    isImpersonating.value = false
     router.push('/login')
+  }
+
+  const startImpersonation = async (impersonationToken: string, targetUser: User) => {
+    if (token.value && user.value) {
+      localStorage.setItem('impersonator_token', token.value)
+      localStorage.setItem('impersonator_user', JSON.stringify(user.value))
+    }
+    isImpersonating.value = true
+    setToken(impersonationToken)
+    setUser(targetUser)
+
+    switch (targetUser.role) {
+      case 'teacher':
+        router.push('/teacher')
+        break
+      case 'admin':
+        router.push('/admin')
+        break
+      default:
+        router.push('/dashboard')
+    }
+  }
+
+  const stopImpersonation = () => {
+    const originalToken = localStorage.getItem('impersonator_token')
+    const originalUser = localStorage.getItem('impersonator_user')
+    if (!originalToken || !originalUser) {
+      logout()
+      return
+    }
+    localStorage.removeItem('impersonator_token')
+    localStorage.removeItem('impersonator_user')
+    isImpersonating.value = false
+    setToken(originalToken)
+    setUser(JSON.parse(originalUser))
+    router.push('/admin')
   }
 
   onMounted(async () => {
@@ -143,6 +183,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token,
     user,
+    isImpersonating,
     login,
     logout,
     fetchUser,
@@ -150,5 +191,7 @@ export const useAuthStore = defineStore('auth', () => {
     handleForgotPassword,
     handleResetPassword,
     updateProfile,
+    startImpersonation,
+    stopImpersonation,
   }
 })

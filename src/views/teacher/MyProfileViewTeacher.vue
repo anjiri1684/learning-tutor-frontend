@@ -2,27 +2,57 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import api from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
+import { uploadImage } from '@/services/upload';
+import ChangePasswordCard from '@/components/ChangePasswordCard.vue';
+
+const authStore = useAuthStore();
 
 const profileForm = ref({
   headline: '',
   bio: '',
+  default_meeting_link: '',
 });
+const profilePictureUrl = ref('');
 const isLoading = ref(true);
 const isSubmitting = ref(false);
+const isUploadingPicture = ref(false);
 const message = ref({ type: '', text: '' });
 
 onMounted(async () => {
+  profilePictureUrl.value = authStore.user?.profile_picture_url || '';
 
   try {
     const response = await api.get('/teacher/profile/me');
     profileForm.value.headline = response.data.headline || '';
     profileForm.value.bio = response.data.bio || '';
+    profileForm.value.default_meeting_link = response.data.default_meeting_link || '';
   } catch (error) {
     console.error('Failed to fetch profile:', error);
   } finally {
     isLoading.value = false;
   }
 });
+
+const onFileChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files[0]) {
+    const file = target.files[0];
+    isUploadingPicture.value = true;
+    message.value = { type: '', text: '' };
+    try {
+      const imageURL = await uploadImage(file);
+      profilePictureUrl.value = imageURL;
+      const result = await authStore.updateProfile({ profile_picture_url: imageURL });
+      message.value = { type: result.success ? 'success' : 'error', text: result.success ? 'Profile picture updated!' : result.message };
+    } catch (error) {
+      console.error(error);
+      message.value = { type: 'error', text: 'Image upload failed. Please try again.' };
+    } finally {
+      isUploadingPicture.value = false;
+    }
+  }
+};
 
 const handleUpdateProfile = async () => {
   isSubmitting.value = true;
@@ -70,6 +100,25 @@ const handleUpdateProfile = async () => {
              <span class="leading-relaxed">{{ message.text }}</span>
           </div>
 
+          <div class="flex items-center gap-6 pb-6 border-b border-gray-800">
+            <div class="relative group">
+               <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full opacity-75 group-hover:opacity-100 transition duration-200 blur"></div>
+               <img
+                  :src="profilePictureUrl || 'https://via.placeholder.com/150'"
+                  class="relative w-24 h-24 rounded-full object-cover border-2 border-black bg-gray-800"
+                  alt="Profile Picture"
+               />
+            </div>
+            <div>
+              <label for="teacher-profile-picture-upload" class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gray-800 border border-gray-700 rounded-xl hover:bg-gray-700 hover:text-purple-400 hover:border-purple-500/50 transition-all shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                {{ isUploadingPicture ? 'Uploading...' : 'Upload New Image' }}
+              </label>
+              <input id="teacher-profile-picture-upload" type="file" @change="onFileChange" :disabled="isUploadingPicture" class="hidden" accept="image/png, image/jpeg" />
+              <p class="text-xs text-gray-500 mt-2">JPG or PNG. Max 5MB.</p>
+            </div>
+          </div>
+
           <div>
             <label for="headline" class="block text-sm font-medium text-gray-300 mb-2">Headline</label>
             <div class="relative">
@@ -102,6 +151,18 @@ const handleUpdateProfile = async () => {
             <p class="text-xs text-gray-500 mt-2 text-right">Markdown formatting supported.</p>
           </div>
 
+          <div>
+            <label for="default-meeting-link" class="block text-sm font-medium text-gray-300 mb-2">Default Meeting Link</label>
+            <input
+              v-model="profileForm.default_meeting_link"
+              id="default-meeting-link"
+              type="url"
+              class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all placeholder-gray-600"
+              placeholder="e.g., https://meet.google.com/your-permanent-room"
+            />
+            <p class="text-xs text-gray-500 mt-2">Automatically applied to new confirmed classes so students can join instantly &mdash; no need to add a link per booking.</p>
+          </div>
+
           <div class="pt-4 border-t border-white/5">
             <button
               type="submit"
@@ -122,6 +183,10 @@ const handleUpdateProfile = async () => {
             </button>
           </div>
         </form>
+      </div>
+
+      <div class="mt-8">
+        <ChangePasswordCard />
       </div>
     </div>
   </div>
