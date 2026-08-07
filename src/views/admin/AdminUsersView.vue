@@ -28,6 +28,74 @@ const isImporting = ref(false);
 const importResult = ref<{ created: any[]; skipped: any[] } | null>(null);
 const importError = ref('');
 
+const selectedUserIds = ref<Set<string>>(new Set());
+const showEmailModal = ref(false);
+const isSendingEmail = ref(false);
+const emailError = ref('');
+const emailResult = ref<string | null>(null);
+const emailForm = ref({
+  manualEmails: '',
+  subject: '',
+  message: '',
+  toAllStudents: false,
+  toAllTeachers: false,
+});
+
+const toggleUserSelected = (userId: string) => {
+  if (selectedUserIds.value.has(userId)) {
+    selectedUserIds.value.delete(userId);
+  } else {
+    selectedUserIds.value.add(userId);
+  }
+  selectedUserIds.value = new Set(selectedUserIds.value);
+};
+
+const openEmailModal = () => {
+  emailForm.value = { manualEmails: '', subject: '', message: '', toAllStudents: false, toAllTeachers: false };
+  emailError.value = '';
+  emailResult.value = null;
+  showEmailModal.value = true;
+};
+
+const submitSendEmail = async () => {
+  const manualEmails = emailForm.value.manualEmails
+    .split(/[\n,]/)
+    .map((e) => e.trim())
+    .filter((e) => e.length > 0);
+  const roles: string[] = [];
+  if (emailForm.value.toAllStudents) roles.push('student');
+  if (emailForm.value.toAllTeachers) roles.push('teacher');
+  const userIds = Array.from(selectedUserIds.value);
+
+  if (manualEmails.length === 0 && roles.length === 0 && userIds.length === 0) {
+    emailError.value = 'Select at least one recipient (checkbox, typed email, or role).';
+    return;
+  }
+  if (!emailForm.value.subject.trim() || !emailForm.value.message.trim()) {
+    emailError.value = 'Subject and message are required.';
+    return;
+  }
+
+  isSendingEmail.value = true;
+  emailError.value = '';
+  emailResult.value = null;
+  try {
+    const response = await api.post('/admin/send-email', {
+      emails: manualEmails,
+      user_ids: userIds,
+      roles,
+      subject: emailForm.value.subject,
+      message: emailForm.value.message,
+    });
+    emailResult.value = response.data.message;
+    selectedUserIds.value = new Set();
+  } catch (error: any) {
+    emailError.value = error?.response?.data?.error || 'Failed to send email.';
+  } finally {
+    isSendingEmail.value = false;
+  }
+};
+
 const createForm = ref({
   full_name: '',
   email: '',
@@ -232,6 +300,12 @@ const changePage = (newPage: number) => {
           >
             Bulk Import (CSV)
           </button>
+          <button
+            @click="openEmailModal"
+            class="whitespace-nowrap px-4 py-2.5 text-sm font-bold text-gray-300 bg-gray-800 border border-gray-700 rounded-xl hover:bg-gray-700 hover:text-white transition-all"
+          >
+            Send Email<span v-if="selectedUserIds.size > 0"> ({{ selectedUserIds.size }})</span>
+          </button>
         </div>
       </div>
 
@@ -240,6 +314,7 @@ const changePage = (newPage: number) => {
           <table class="w-full text-left whitespace-nowrap">
             <thead>
               <tr class="bg-white/5 text-gray-300 text-sm uppercase tracking-wider border-b border-gray-700">
+                <th class="p-4 font-semibold w-10"></th>
                 <th class="p-4 font-semibold">Name</th>
                 <th class="p-4 font-semibold">Email</th>
                 <th class="p-4 font-semibold">Role</th>
@@ -249,7 +324,7 @@ const changePage = (newPage: number) => {
             </thead>
             <tbody class="divide-y divide-gray-800">
               <tr v-if="isLoading">
-                <td colspan="5" class="p-8 text-center">
+                <td colspan="6" class="p-8 text-center">
                   <div class="flex flex-col items-center justify-center gap-3">
                     <svg class="animate-spin h-6 w-6 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -260,6 +335,14 @@ const changePage = (newPage: number) => {
                 </td>
               </tr>
               <tr v-else v-for="user in users" :key="user.id" class="hover:bg-white/5 transition-colors group">
+                <td class="p-4">
+                  <input
+                    type="checkbox"
+                    :checked="selectedUserIds.has(user.id)"
+                    @change="toggleUserSelected(user.id)"
+                    class="h-4 w-4 rounded border-gray-600 bg-black/50 text-purple-600 focus:ring-purple-500"
+                  />
+                </td>
                 <td class="p-4">
                    <div class="flex items-center gap-3">
                       <div class="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-400 border border-gray-700">
@@ -326,7 +409,7 @@ const changePage = (newPage: number) => {
                 </td>
               </tr>
               <tr v-if="!isLoading && users.length === 0">
-                 <td colspan="5" class="p-8 text-center text-gray-500">No users found matching your search.</td>
+                 <td colspan="6" class="p-8 text-center text-gray-500">No users found matching your search.</td>
               </tr>
             </tbody>
           </table>
@@ -465,6 +548,66 @@ const changePage = (newPage: number) => {
                 <button @click="showEditModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
                 <button @click="submitEditUser" :disabled="isSaving" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">
                   {{ isSaving ? 'Saving...' : 'Save Changes' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showEmailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
+        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-xl overflow-hidden">
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-white mb-2">Send Email</h3>
+            <p class="text-sm text-gray-400 mb-4">
+              Send to users checked in the table, emails typed below, and/or an entire role.
+            </p>
+
+            <div v-if="emailError" class="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-300 text-sm">{{ emailError }}</div>
+            <div v-if="emailResult" class="mb-4 p-3 rounded-lg bg-green-900/30 border border-green-500/30 text-green-300 text-sm">{{ emailResult }}</div>
+
+            <div class="space-y-4">
+              <div v-if="selectedUserIds.size > 0" class="text-sm text-purple-300">
+                {{ selectedUserIds.size }} user(s) selected from the table.
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Additional Emails (comma or newline separated)</label>
+                <textarea
+                  v-model="emailForm.manualEmails"
+                  rows="3"
+                  placeholder="jane@example.com, john@example.com"
+                  class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                ></textarea>
+              </div>
+
+              <div class="flex gap-6">
+                <label class="flex items-center gap-2 text-sm text-gray-300">
+                  <input type="checkbox" v-model="emailForm.toAllStudents" class="h-4 w-4 rounded border-gray-600 bg-black/50 text-purple-600 focus:ring-purple-500" />
+                  All Students
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-300">
+                  <input type="checkbox" v-model="emailForm.toAllTeachers" class="h-4 w-4 rounded border-gray-600 bg-black/50 text-purple-600 focus:ring-purple-500" />
+                  All Teachers
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Subject</label>
+                <input v-model="emailForm.subject" type="text" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                <textarea v-model="emailForm.message" rows="6" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+
+              <div class="flex justify-end gap-3 pt-2">
+                <button @click="showEmailModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Close</button>
+                <button @click="submitSendEmail" :disabled="isSendingEmail" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">
+                  {{ isSendingEmail ? 'Sending...' : 'Send Email' }}
                 </button>
               </div>
             </div>
