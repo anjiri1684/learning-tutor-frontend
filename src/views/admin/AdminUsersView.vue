@@ -483,8 +483,8 @@ const changePage = (newPage: number) => {
     </div>
 
     <Teleport to="body">
-      <div v-if="showCreateModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
-        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-2xl overflow-hidden">
+      <div v-if="showCreateModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start sm:items-center justify-center z-[100] p-4 overflow-y-auto font-sans text-white">
+        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-2xl my-auto max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <h3 class="text-xl font-bold text-white mb-4">Create User</h3>
             <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-300 text-sm">{{ formError }}</div>
@@ -522,7 +522,7 @@ const changePage = (newPage: number) => {
               <div v-if="createForm.role === 'coach'" class="sm:col-span-2 border-t border-gray-800 pt-4">
                 <p class="text-sm font-medium text-gray-200">Areas this coach can access</p>
                 <p class="mt-1 text-xs text-gray-500">The coach only sees the sections you tick here when they log in.</p>
-                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                   <label v-for="opt in ADMIN_PERMISSION_OPTIONS" :key="opt.section" class="flex items-center gap-2 text-sm text-gray-300 bg-black/30 border border-white/5 rounded-lg px-3 py-2">
                     <input type="checkbox" :value="opt.section" v-model="createForm.admin_permissions" class="h-4 w-4 rounded border-gray-600 bg-black/50 text-purple-600 focus:ring-purple-500" />
                     {{ opt.label }}
@@ -577,8 +577,8 @@ const changePage = (newPage: number) => {
     </Teleport>
 
     <Teleport to="body">
-      <div v-if="showEditModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
-        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div v-if="showEditModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start sm:items-center justify-center z-[100] p-4 overflow-y-auto font-sans text-white">
+        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-2xl my-auto max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <h3 class="text-xl font-bold text-white mb-4">Edit User</h3>
             <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-300 text-sm">{{ formError }}</div>
@@ -604,7 +604,7 @@ const changePage = (newPage: number) => {
               <div v-if="editForm.role === 'coach'" class="border-t border-gray-800 pt-4">
                 <p class="text-sm font-medium text-gray-200">Areas this coach can access</p>
                 <p class="mt-1 text-xs text-gray-500">The coach only sees the sections you tick here when they log in.</p>
-                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                   <label v-for="opt in ADMIN_PERMISSION_OPTIONS" :key="opt.section" class="flex items-center gap-2 text-sm text-gray-300 bg-black/30 border border-white/5 rounded-lg px-3 py-2">
                     <input type="checkbox" :value="opt.section" v-model="editForm.admin_permissions" class="h-4 w-4 rounded border-gray-600 bg-black/50 text-purple-600 focus:ring-purple-500" />
                     {{ opt.label }}
