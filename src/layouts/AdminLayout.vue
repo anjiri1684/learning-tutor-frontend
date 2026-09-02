@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth';
+import { computed } from 'vue';
+import { useAuthStore, adminAllowedSections } from '@/stores/auth';
 import { RouterLink } from 'vue-router';
 import NotificationBell from '@/components/NotificationBell.vue';
 
@@ -8,23 +9,33 @@ const handleLogout = () => {
   authStore.logout();
 };
 
-const navLinks = [
-  { name: 'Dashboard', path: '/admin/dashboard' },
-  { name: 'User Management', path: '/admin/users' },
-  { name: 'Teacher Applications', path: '/admin/teacher-applications' },
-  { name: 'Booking Management', path: '/admin/bookings' },
-  { name: 'Language Management', path: '/admin/languages' },
-  { name: 'Class Bundles', path: '/admin/bundles' },
-  { name: 'Exam Management', path: '/admin/exams' },
-  { name: 'Payout Requests', path: '/admin/payouts' },
-  { name: 'Refund Requests', path: '/admin/refunds' },
-  { name: 'Payment History', path: '/admin/payments' },
-  { name: 'Review Management', path: '/admin/reviews' },
-  { name: 'Reports', path: '/admin/reports' },
-  { name: 'Resource Library', path: '/admin/library' },
-  { name: 'Audit Log', path: '/admin/audit-log' },
-  { name: 'Settings', path: '/admin/settings' },
+const allNavLinks = [
+  { name: 'Dashboard', path: '/admin/dashboard', section: 'dashboard' },
+  { name: 'User Management', path: '/admin/users', section: 'users' },
+  { name: 'Teacher Applications', path: '/admin/teacher-applications', section: 'teacher-applications' },
+  { name: 'Booking Management', path: '/admin/bookings', section: 'bookings' },
+  { name: 'Language Management', path: '/admin/languages', section: 'languages' },
+  { name: 'Class Bundles', path: '/admin/bundles', section: 'bundles' },
+  { name: 'Corporate Enquiries', path: '/admin/corporate-enquiries', section: 'corporate-enquiries' },
+  { name: 'Requests', path: '/admin/requests', section: 'requests' },
+  { name: 'Exam Management', path: '/admin/exams', section: 'exams' },
+  { name: 'Payout Requests', path: '/admin/payouts', section: 'payouts' },
+  { name: 'Refund Requests', path: '/admin/refunds', section: 'refunds' },
+  { name: 'Payment History', path: '/admin/payments', section: 'payments' },
+  { name: 'Review Management', path: '/admin/reviews', section: 'reviews' },
+  { name: 'Reports', path: '/admin/reports', section: 'reports' },
+  { name: 'Resource Library', path: '/admin/library', section: 'library' },
+  { name: 'Audit Log', path: '/admin/audit-log', section: 'audit-log' },
 ];
+
+const navLinks = computed(() => {
+  const allowed = adminAllowedSections(authStore.user);
+  return [
+    ...allNavLinks.filter((l) => allowed.includes(l.section)),
+    // Settings is each admin's personal profile — always shown.
+    { name: 'Settings', path: '/admin/settings', section: 'settings' },
+  ];
+});
 
 // Helper to get initials
 const getUserInitials = () => {

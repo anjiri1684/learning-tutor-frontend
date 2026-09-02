@@ -1,8 +1,61 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import api from '@/services/api';
 
 const mobileMenuOpen = ref(false);
+
+interface CorporateTraining {
+  ID: string;
+  Name: string;
+  Price: number;
+  NumberOfClasses: number;
+  description: string;
+  language: { name: string };
+}
+
+const corporateTrainings = ref<CorporateTraining[]>([]);
+
+onMounted(async () => {
+  try {
+    const res = await api.get('/corporate-trainings');
+    corporateTrainings.value = res.data;
+  } catch (error) {
+    console.error('Failed to load corporate trainings:', error);
+  }
+});
+
+// ---- Contact / requests form (replaces mailto links) ----
+const showContactModal = ref(false);
+const contactForm = ref({ name: '', email: '', subject: '', message: '', type: 'general' });
+const contactSubmitting = ref(false);
+const contactResult = ref({ type: '', text: '' });
+
+const openContactModal = (type: 'general' | 'teacher_application') => {
+  contactForm.value = {
+    name: '',
+    email: '',
+    subject: type === 'teacher_application' ? 'Application to teach' : '',
+    message: '',
+    type,
+  };
+  contactResult.value = { type: '', text: '' };
+  showContactModal.value = true;
+};
+
+const submitContact = async () => {
+  contactSubmitting.value = true;
+  contactResult.value = { type: '', text: '' };
+  try {
+    const res = await api.post('/contact-requests', contactForm.value);
+    contactResult.value = { type: 'success', text: res.data.message || 'Message sent. We will get back to you.' };
+    contactForm.value = { name: '', email: '', subject: '', message: '', type: contactForm.value.type };
+  } catch (error: any) {
+    contactResult.value = { type: 'error', text: error.response?.data?.error || 'Failed to send message.' };
+  } finally {
+    contactSubmitting.value = false;
+  }
+};
 const openFaq = ref<number | null>(null);
 
 const toggleFaq = (index: number) => {
@@ -84,6 +137,7 @@ const testimonials = [
           <a href="#features" class="text-sm font-medium leading-6 text-gray-300 hover:text-purple-400 transition-colors">Features</a>
           <a href="#testimonials" class="text-sm font-medium leading-6 text-gray-300 hover:text-purple-400 transition-colors">Testimonials</a>
           <a href="#pricing" class="text-sm font-medium leading-6 text-gray-300 hover:text-purple-400 transition-colors">Pricing</a>
+          <a href="#corporate" class="text-sm font-medium leading-6 text-gray-300 hover:text-purple-400 transition-colors">For Business</a>
         </div>
         <div class="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-4">
            <RouterLink to="/login" class="text-sm font-semibold leading-6 text-white hover:text-purple-400 py-2">Log in</RouterLink>
@@ -97,6 +151,7 @@ const testimonials = [
           <a href="#features" @click="mobileMenuOpen = false" class="block text-base font-semibold leading-7 text-white hover:text-purple-400">Features</a>
           <a href="#testimonials" @click="mobileMenuOpen = false" class="block text-base font-semibold leading-7 text-white hover:text-purple-400">Testimonials</a>
           <a href="#pricing" @click="mobileMenuOpen = false" class="block text-base font-semibold leading-7 text-white hover:text-purple-400">Pricing</a>
+          <a href="#corporate" @click="mobileMenuOpen = false" class="block text-base font-semibold leading-7 text-white hover:text-purple-400">For Business</a>
           <hr class="border-white/10 my-2">
           <div class="flex flex-col gap-3">
             <RouterLink to="/login" @click="mobileMenuOpen = false" class="text-base font-semibold leading-7 text-white hover:text-purple-400">Log in</RouterLink>
@@ -349,6 +404,66 @@ const testimonials = [
         </div>
       </section>
 
+      <section id="corporate" class="relative bg-gray-950 py-24 sm:py-32 overflow-hidden border-t border-white/5">
+        <div class="absolute inset-0 -z-10 bg-[radial-gradient(45rem_50rem_at_bottom,theme(colors.indigo.900),theme(colors.black))] opacity-40"></div>
+
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-2xl text-center">
+            <h2 class="text-base font-semibold leading-7 text-purple-400 uppercase tracking-wide">For Business</h2>
+            <p class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Corporate Language Training</p>
+            <p class="mt-6 text-lg leading-8 text-gray-400">
+              Equip your team with the language skills they need. Structured group programs with
+              dedicated tutors, progress reporting for HR, and scheduling that fits your workday.
+            </p>
+          </div>
+
+          <div class="mx-auto mt-14 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2 lg:max-w-none lg:grid-cols-4">
+            <div class="rounded-2xl bg-white/5 p-6 ring-1 ring-inset ring-white/10">
+              <h3 class="font-bold text-white">Team-based curriculum</h3>
+              <p class="mt-2 text-sm text-gray-400">Built around your industry vocabulary and real workplace scenarios.</p>
+            </div>
+            <div class="rounded-2xl bg-white/5 p-6 ring-1 ring-inset ring-white/10">
+              <h3 class="font-bold text-white">Progress reporting</h3>
+              <p class="mt-2 text-sm text-gray-400">Attendance and proficiency reports delivered to your L&amp;D team.</p>
+            </div>
+            <div class="rounded-2xl bg-white/5 p-6 ring-1 ring-inset ring-white/10">
+              <h3 class="font-bold text-white">Flexible scheduling</h3>
+              <p class="mt-2 text-sm text-gray-400">Sessions arranged around your team&#8217;s hours and time zones.</p>
+            </div>
+            <div class="rounded-2xl bg-white/5 p-6 ring-1 ring-inset ring-white/10">
+              <h3 class="font-bold text-white">Dedicated tutors</h3>
+              <p class="mt-2 text-sm text-gray-400">Vetted, certified tutors assigned consistently to your cohort.</p>
+            </div>
+          </div>
+
+          <div v-if="corporateTrainings.length > 0" class="mx-auto mt-14 grid max-w-lg grid-cols-1 gap-8 lg:max-w-none lg:grid-cols-3">
+            <div
+              v-for="t in corporateTrainings.slice(0, 3)"
+              :key="t.ID"
+              class="bg-gray-900/60 backdrop-blur-sm rounded-3xl p-8 ring-1 ring-white/10 hover:ring-purple-500/30 transition-all flex flex-col"
+            >
+              <h3 class="text-lg font-semibold leading-8 text-white">{{ t.Name }}</h3>
+              <p class="mt-1 text-sm text-purple-400 uppercase tracking-wide">{{ t.language?.name }}</p>
+              <p v-if="t.description" class="mt-3 text-sm leading-6 text-gray-400">{{ t.description }}</p>
+              <p class="mt-6 flex items-baseline gap-x-1">
+                <span class="text-4xl font-bold tracking-tight text-white">${{ t.Price.toFixed(0) }}</span>
+                <span class="text-sm font-semibold leading-6 text-gray-400">/ {{ t.NumberOfClasses }} sessions</span>
+              </p>
+              <RouterLink to="/corporate-training" class="mt-6 block rounded-full bg-white/5 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-white/10 transition">View details</RouterLink>
+            </div>
+          </div>
+
+          <div class="mt-14 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <RouterLink to="/corporate-training" class="rounded-full bg-purple-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/50 hover:bg-purple-500 transition-all">
+              Explore Corporate Training
+            </RouterLink>
+            <RouterLink to="/corporate-training" class="text-sm font-semibold leading-6 text-white flex items-center gap-1 group">
+              Request a custom quote <span aria-hidden="true" class="group-hover:translate-x-1 transition-transform text-purple-400">&rarr;</span>
+            </RouterLink>
+          </div>
+        </div>
+      </section>
+
       <section id="faq" class="bg-black py-24 sm:py-32">
         <div class="mx-auto max-w-4xl px-6 lg:px-8">
           <h2 class="text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">Common Questions</h2>
@@ -383,9 +498,9 @@ const testimonials = [
         <RouterLink to="/register" class="rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-purple-900 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-gray-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-all">
           Create free account
         </RouterLink>
-        <a href="mailto:support@phyinternational.com" class="text-sm font-semibold leading-6 text-white hover:text-purple-200">
+        <button type="button" @click="openContactModal('general')" class="text-sm font-semibold leading-6 text-white hover:text-purple-200">
           Contact us <span aria-hidden="true">→</span>
-        </a>
+        </button>
       </div>
     </div>
 
@@ -396,9 +511,9 @@ const testimonials = [
           <p class="mt-2 text-purple-200/80">Share your expertise and reach students globally. We're always looking for passionate tutors to join our growing community.</p>
         </div>
         <div class="mt-6 sm:mt-0 sm:ml-8">
-          <a href="mailto:support@phyinternational.com" class="inline-flex items-center justify-center rounded-full bg-purple-600/30 px-6 py-3 text-sm font-semibold text-white ring-1 ring-inset ring-purple-400/30 hover:bg-purple-600/50 transition-all">
-            Email us to apply
-          </a>
+          <button type="button" @click="openContactModal('teacher_application')" class="inline-flex items-center justify-center rounded-full bg-purple-600/30 px-6 py-3 text-sm font-semibold text-white ring-1 ring-inset ring-purple-400/30 hover:bg-purple-600/50 transition-all">
+            Apply to teach
+          </button>
         </div>
       </div>
     </div>
@@ -406,5 +521,54 @@ const testimonials = [
 </section>
 
     </main>
+
+    <Teleport to="body">
+      <div v-if="showContactModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-sans text-white">
+        <div class="w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-gray-900 shadow-2xl shadow-purple-900/40">
+          <div class="p-6 sm:p-8">
+            <div class="flex items-start justify-between">
+              <h3 class="text-xl font-bold text-white">
+                {{ contactForm.type === 'teacher_application' ? 'Apply to Teach' : 'Contact Us' }}
+              </h3>
+              <button @click="showContactModal = false" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <p class="mt-1 text-sm text-gray-400">Send us a message and our team will get back to you by email.</p>
+
+            <div
+              v-if="contactResult.text"
+              :class="['mt-4 rounded-xl border p-3 text-sm',
+                contactResult.type === 'success' ? 'border-green-500/30 bg-green-900/30 text-green-300' : 'border-red-500/30 bg-red-900/30 text-red-300']"
+            >
+              {{ contactResult.text }}
+            </div>
+
+            <form @submit.prevent="submitContact" class="mt-5 space-y-4">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-gray-300">Your name</label>
+                <input v-model="contactForm.name" required class="w-full rounded-xl border border-gray-700 bg-black/50 px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-gray-300">Email</label>
+                <input v-model="contactForm.email" type="email" required class="w-full rounded-xl border border-gray-700 bg-black/50 px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-gray-300">Subject</label>
+                <input v-model="contactForm.subject" class="w-full rounded-xl border border-gray-700 bg-black/50 px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-gray-300">Message</label>
+                <textarea v-model="contactForm.message" rows="4" required class="w-full rounded-xl border border-gray-700 bg-black/50 px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+              <div class="flex justify-end gap-3 pt-1">
+                <button type="button" @click="showContactModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Close</button>
+                <button type="submit" :disabled="contactSubmitting" class="rounded-lg bg-purple-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-purple-500/30 transition-all hover:bg-purple-500 disabled:opacity-50">
+                  {{ contactSubmitting ? 'Sending...' : 'Send Message' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

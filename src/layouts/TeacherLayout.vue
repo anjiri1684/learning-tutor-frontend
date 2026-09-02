@@ -39,7 +39,7 @@ const getUserInitials = () => {
 
       <div class="p-6 border-b border-white/5 flex items-center gap-3">
         <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/30 text-xs">
-          PYH
+          PHY
         </div>
         <h1 class="text-xl font-bold tracking-tight text-white">Teacher Portal</h1>
       </div>
@@ -94,7 +94,7 @@ const getUserInitials = () => {
 
         <header class="md:hidden bg-gray-900/80 backdrop-blur-md border-b border-white/10 p-4 flex justify-between items-center z-30">
           <div class="flex items-center gap-2">
-             <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">PYH</div>
+             <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">PHY</div>
              <h1 class="text-lg font-bold text-white">Teacher Portal</h1>
           </div>
           <div class="flex items-center gap-1">

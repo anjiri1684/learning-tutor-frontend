@@ -4,7 +4,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useBookingStore } from '@/stores/booking';
 import { useCurrencyStore } from '@/stores/currency';
 import { useAuthStore } from '@/stores/auth';
-import { useRouter } from 'vue-router';
+import { useRouter, RouterLink } from 'vue-router';
 import api from '@/services/api';
 import { currentTimeZone } from '@/utils/datetime';
 
@@ -164,6 +164,17 @@ const displayTimeZone = computed(() => currentTimeZone(authStore.user?.time_zone
            </div>
         </div>
       </div>
+
+      <RouterLink
+        to="/dashboard/corporate-training"
+        class="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-purple-500/30 bg-purple-900/20 px-6 py-4 hover:bg-purple-900/30 transition-colors"
+      >
+        <span class="text-sm text-purple-100">
+          <span class="font-semibold text-white">Booking for a team?</span>
+          Corporate training packages have dedicated group pricing.
+        </span>
+        <span class="text-purple-300 whitespace-nowrap text-sm font-semibold">View packages →</span>
+      </RouterLink>
 
       <div class="bg-gray-900/60 backdrop-blur-md rounded-2xl p-8 border border-white/10 shadow-xl">
         <h2 class="text-xl font-bold text-white mb-6">Complete Payment</h2>

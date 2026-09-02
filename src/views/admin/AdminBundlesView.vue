@@ -16,6 +16,8 @@ interface Bundle {
   Price: number
   Currency: string
   IsActive: boolean
+  type: string
+  description: string
   language: Language
   CreatedAt: string
   UpdatedAt: string
@@ -62,7 +64,9 @@ const openAddModal = () => {
     NumberOfClasses: 10,
     Price: 0,
     Currency: 'USD',
-    IsActive: true
+    IsActive: true,
+    type: 'standard',
+    description: ''
   }
   showModal.value = true
 }
@@ -73,13 +77,34 @@ const openEditModal = (bundle: Bundle) => {
   showModal.value = true
 }
 
+const toggleActive = async (bundle: Bundle) => {
+  try {
+    await api.put(`/admin/bundles/${bundle.ID}/status`, { is_active: !bundle.IsActive })
+    bundle.IsActive = !bundle.IsActive
+  } catch (error: any) {
+    alert(error.response?.data?.error || 'Failed to update status')
+  }
+}
+
+const handleDelete = async (bundle: Bundle) => {
+  if (!confirm(`Permanently delete "${bundle.Name}"? This cannot be undone.`)) return
+  try {
+    await api.delete(`/admin/bundles/${bundle.ID}`)
+    await fetchData()
+  } catch (error: any) {
+    alert(error.response?.data?.error || 'Failed to delete bundle')
+  }
+}
+
 const handleSave = async () => {
   try {
     const payload = {
       name: currentBundle.value.Name,
       language_id: currentBundle.value.LanguageID,
       number_of_classes: Number(currentBundle.value.NumberOfClasses),
-      price: Number(currentBundle.value.Price)
+      price: Number(currentBundle.value.Price),
+      type: currentBundle.value.type || 'standard',
+      description: currentBundle.value.description || ''
     }
 
     if (isEditing.value && currentBundle.value.ID) {
@@ -121,6 +146,7 @@ const handleSave = async () => {
             <thead>
               <tr class="bg-white/5 text-gray-300 text-sm uppercase tracking-wider border-b border-gray-700">
                 <th class="p-4 font-semibold">Name</th>
+                <th class="p-4 font-semibold">Type</th>
                 <th class="p-4 font-semibold">Language</th>
                 <th class="p-4 font-semibold text-center">Classes</th>
                 <th class="p-4 font-semibold">Total Price</th>
@@ -130,7 +156,7 @@ const handleSave = async () => {
             </thead>
             <tbody class="divide-y divide-gray-800">
               <tr v-if="isLoading">
-                 <td colspan="6" class="p-8 text-center">
+                 <td colspan="7" class="p-8 text-center">
                     <div class="flex flex-col items-center justify-center gap-3">
                       <svg class="animate-spin h-6 w-6 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -142,6 +168,12 @@ const handleSave = async () => {
               </tr>
               <tr v-else v-for="b in bundles" :key="b.ID" class="hover:bg-white/5 transition-colors group">
                 <td class="p-4 font-medium text-white">{{ b.Name }}</td>
+                <td class="p-4">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
+                    :class="b.type === 'corporate' ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' : 'bg-gray-700/40 text-gray-300 border-gray-600/40'">
+                    {{ b.type === 'corporate' ? 'Corporate' : 'Standard' }}
+                  </span>
+                </td>
                 <td class="p-4 text-gray-300">{{ b.language?.name }}</td>
                 <td class="p-4 text-center">
                    <span class="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded border border-gray-700 font-mono">
@@ -158,17 +190,32 @@ const handleSave = async () => {
                     {{ b.IsActive ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
-                <td class="p-4 text-right">
+                <td class="p-4 text-right space-x-2 whitespace-nowrap">
                   <button
                     @click="openEditModal(b)"
                     class="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors border border-purple-500/30 hover:bg-purple-500/10 px-3 py-1.5 rounded-lg"
                   >
                     Edit
                   </button>
+                  <button
+                    @click="toggleActive(b)"
+                    class="text-sm font-medium transition-colors border px-3 py-1.5 rounded-lg"
+                    :class="b.IsActive
+                      ? 'text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10'
+                      : 'text-green-400 border-green-500/30 hover:bg-green-500/10'"
+                  >
+                    {{ b.IsActive ? 'Deactivate' : 'Activate' }}
+                  </button>
+                  <button
+                    @click="handleDelete(b)"
+                    class="text-sm font-medium text-red-400 hover:text-red-300 transition-colors border border-red-500/30 hover:bg-red-500/10 px-3 py-1.5 rounded-lg"
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
               <tr v-if="!isLoading && bundles.length === 0">
-                 <td colspan="6" class="p-8 text-center text-gray-500">No bundles found. Create one to get started.</td>
+                 <td colspan="7" class="p-8 text-center text-gray-500">No bundles found. Create one to get started.</td>
               </tr>
             </tbody>
           </table>
@@ -193,6 +240,27 @@ const handleSave = async () => {
                   placeholder="e.g. Starter Pack"
                   class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all placeholder-gray-600"
                 />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Type</label>
+                <select
+                  v-model="currentBundle.type"
+                  class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all cursor-pointer appearance-none"
+                >
+                  <option value="standard">Standard (student bundle)</option>
+                  <option value="corporate">Corporate training</option>
+                </select>
+              </div>
+
+              <div class="col-span-1 md:col-span-2">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Description <span class="text-gray-500">(shown on corporate training page)</span></label>
+                <textarea
+                  v-model="currentBundle.description"
+                  rows="3"
+                  placeholder="e.g. Tailored group lessons for teams, progress reports for HR, flexible scheduling."
+                  class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all placeholder-gray-600"
+                ></textarea>
               </div>
 
               <div>

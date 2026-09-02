@@ -5,6 +5,26 @@ import api from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
+
+const ADMIN_PERMISSION_OPTIONS: { section: string; label: string }[] = [
+  { section: 'dashboard', label: 'Dashboard' },
+  { section: 'users', label: 'User Management' },
+  { section: 'teacher-applications', label: 'Teacher Applications' },
+  { section: 'bookings', label: 'Booking Management' },
+  { section: 'languages', label: 'Language Management' },
+  { section: 'bundles', label: 'Class Bundles' },
+  { section: 'corporate-enquiries', label: 'Corporate Enquiries' },
+  { section: 'requests', label: 'Requests' },
+  { section: 'exams', label: 'Exam Management' },
+  { section: 'payouts', label: 'Payout Requests' },
+  { section: 'refunds', label: 'Refund Requests' },
+  { section: 'payments', label: 'Payment History' },
+  { section: 'reviews', label: 'Review Management' },
+  { section: 'reports', label: 'Reports' },
+  { section: 'library', label: 'Resource Library' },
+  { section: 'audit-log', label: 'Audit Log' },
+];
+
 const users = ref<any[]>([]);
 const isLoading = ref(true);
 const updatingUserId = ref<string | null>(null);
@@ -103,16 +123,18 @@ const createForm = ref({
   role: 'student',
   headline: '',
   bio: '',
+  admin_permissions: [] as string[],
 });
 
 const editForm = ref({
   full_name: '',
   email: '',
   role: 'student',
+  admin_permissions: [] as string[],
 });
 
 const openCreateModal = () => {
-  createForm.value = { full_name: '', email: '', password: '', role: 'student', headline: '', bio: '' };
+  createForm.value = { full_name: '', email: '', password: '', role: 'student', headline: '', bio: '', admin_permissions: [] };
   formError.value = '';
   showCreateModal.value = true;
 };
@@ -121,7 +143,12 @@ const submitCreateUser = async () => {
   isSaving.value = true;
   formError.value = '';
   try {
-    await api.post('/admin/users', createForm.value);
+    const payload = {
+      ...createForm.value,
+      admin_permissions:
+        createForm.value.role === 'coach' ? createForm.value.admin_permissions : [],
+    };
+    await api.post('/admin/users', payload);
     showCreateModal.value = false;
     await fetchUsers();
   } catch (error: any) {
@@ -165,7 +192,16 @@ const submitImport = async () => {
 
 const openEditModal = (user: any) => {
   editingUser.value = user;
-  editForm.value = { full_name: user.full_name, email: user.email, role: user.role };
+  let perms: string[] = [];
+  if (user.admin_permissions) {
+    try {
+      const parsed = JSON.parse(user.admin_permissions);
+      if (Array.isArray(parsed)) perms = parsed;
+    } catch {
+      /* ignore */
+    }
+  }
+  editForm.value = { full_name: user.full_name, email: user.email, role: user.role, admin_permissions: perms };
   formError.value = '';
   showEditModal.value = true;
 };
@@ -175,7 +211,12 @@ const submitEditUser = async () => {
   isSaving.value = true;
   formError.value = '';
   try {
-    await api.put(`/admin/users/${editingUser.value.id}`, editForm.value);
+    const payload = {
+      ...editForm.value,
+      admin_permissions:
+        editForm.value.role === 'coach' ? editForm.value.admin_permissions : [],
+    };
+    await api.put(`/admin/users/${editingUser.value.id}`, payload);
     showEditModal.value = false;
     await fetchUsers();
   } catch (error: any) {
@@ -355,6 +396,7 @@ const changePage = (newPage: number) => {
                 <td class="p-4">
                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize"
                      :class="user.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                             user.role === 'coach' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                              user.role === 'teacher' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
                              'bg-gray-700/30 text-gray-400 border-gray-600/30'">
                      {{ user.role }}
@@ -464,7 +506,8 @@ const changePage = (newPage: number) => {
                 <select v-model="createForm.role" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
-                  <option value="admin">Admin</option>
+                  <option value="coach">Coach (limited admin)</option>
+                  <option value="admin">Admin (full access)</option>
                 </select>
               </div>
               <div v-if="createForm.role === 'teacher'">
@@ -475,6 +518,18 @@ const changePage = (newPage: number) => {
                 <label class="block text-sm font-medium text-gray-300 mb-2">Bio</label>
                 <textarea v-model="createForm.bio" rows="2" class="w-full px-4 py-2.5 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
               </div>
+
+              <div v-if="createForm.role === 'coach'" class="sm:col-span-2 border-t border-gray-800 pt-4">
+                <p class="text-sm font-medium text-gray-200">Areas this coach can access</p>
+                <p class="mt-1 text-xs text-gray-500">The coach only sees the sections you tick here when they log in.</p>
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label v-for="opt in ADMIN_PERMISSION_OPTIONS" :key="opt.section" class="flex items-center gap-2 text-sm text-gray-300 bg-black/30 border border-white/5 rounded-lg px-3 py-2">
+                    <input type="checkbox" :value="opt.section" v-model="createForm.admin_permissions" class="h-4 w-4 rounded border-gray-600 bg-black/50 text-purple-600 focus:ring-purple-500" />
+                    {{ opt.label }}
+                  </label>
+                </div>
+              </div>
+
               <div class="sm:col-span-2 flex justify-end gap-3 pt-2">
                 <button @click="showCreateModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
                 <button @click="submitCreateUser" :disabled="isSaving" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">
@@ -523,7 +578,7 @@ const changePage = (newPage: number) => {
 
     <Teleport to="body">
       <div v-if="showEditModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans text-white">
-        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-md overflow-hidden">
+        <div class="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl shadow-purple-900/40 w-full max-w-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <h3 class="text-xl font-bold text-white mb-4">Edit User</h3>
             <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-300 text-sm">{{ formError }}</div>
@@ -541,9 +596,22 @@ const changePage = (newPage: number) => {
                 <select v-model="editForm.role" class="w-full px-4 py-3 bg-black/50 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
-                  <option value="admin">Admin</option>
+                  <option value="coach">Coach (limited admin)</option>
+                  <option value="admin">Admin (full access)</option>
                 </select>
               </div>
+
+              <div v-if="editForm.role === 'coach'" class="border-t border-gray-800 pt-4">
+                <p class="text-sm font-medium text-gray-200">Areas this coach can access</p>
+                <p class="mt-1 text-xs text-gray-500">The coach only sees the sections you tick here when they log in.</p>
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label v-for="opt in ADMIN_PERMISSION_OPTIONS" :key="opt.section" class="flex items-center gap-2 text-sm text-gray-300 bg-black/30 border border-white/5 rounded-lg px-3 py-2">
+                    <input type="checkbox" :value="opt.section" v-model="editForm.admin_permissions" class="h-4 w-4 rounded border-gray-600 bg-black/50 text-purple-600 focus:ring-purple-500" />
+                    {{ opt.label }}
+                  </label>
+                </div>
+              </div>
+
               <div class="flex justify-end gap-3 pt-2">
                 <button @click="showEditModal = false" class="px-4 py-2.5 text-sm text-gray-300 hover:text-white">Cancel</button>
                 <button @click="submitEditUser" :disabled="isSaving" class="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-500 shadow-lg shadow-purple-500/30 disabled:opacity-50">

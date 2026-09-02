@@ -15,6 +15,51 @@ interface User {
   profile_picture_url?: string
   xp?: number
   referral_code?: string
+  admin_permissions?: string | null
+}
+
+// Canonical admin section slugs. Keep in sync with backend middleware.AdminSections.
+export const ADMIN_SECTIONS = [
+  'dashboard',
+  'users',
+  'teacher-applications',
+  'bookings',
+  'languages',
+  'bundles',
+  'corporate-enquiries',
+  'requests',
+  'exams',
+  'payouts',
+  'refunds',
+  'payments',
+  'reviews',
+  'reports',
+  'library',
+  'audit-log',
+] as const
+
+// True for anyone who can enter the /admin area (full admins + coaches).
+export function isAdminArea(role?: string | null): boolean {
+  return role === 'admin' || role === 'coach'
+}
+
+// Returns the list of admin sections a user may access.
+//  - full admin  => every section
+//  - coach       => only the sections stored in admin_permissions (deny by default)
+//  - anyone else => nothing
+export function adminAllowedSections(user: { role: string; admin_permissions?: string | null } | null): string[] {
+  if (!user) return []
+  if (user.role === 'admin') return [...ADMIN_SECTIONS]
+  if (user.role !== 'coach') return []
+  const raw = user.admin_permissions
+  if (!raw || raw === '[]' || raw === 'null') return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed
+  } catch {
+    return []
+  }
+  return []
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -41,7 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
       await fetchUser()
 
       if (user.value) {
-        if (user.value.role === 'admin') {
+        if (user.value.role === 'admin' || user.value.role === 'coach') {
           return { success: true, redirectPath: '/admin' }
         }
         if (user.value.role === 'teacher') {
@@ -152,6 +197,7 @@ export const useAuthStore = defineStore('auth', () => {
         router.push('/teacher')
         break
       case 'admin':
+      case 'coach':
         router.push('/admin')
         break
       default:

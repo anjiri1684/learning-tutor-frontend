@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore, adminAllowedSections, isAdminArea } from '@/stores/auth'
 import MainLayout from '@/layouts/MainLayout.vue'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
@@ -48,6 +48,9 @@ import AdminLibraryView from '@/views/admin/AdminLibraryView.vue'
 import MyProgressView from '@/views/MyProgressView.vue'
 import TeacherAnalyticsView from '@/views/teacher/TeacherAnalyticsView.vue'
 import LandingPageView from '@/views/LandingPageView.vue'
+import CorporateTrainingView from '@/views/CorporateTrainingView.vue'
+import AdminCorporateEnquiriesView from '@/views/admin/AdminCorporateEnquiriesView.vue'
+import AdminRequestsView from '@/views/admin/AdminRequestsView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
@@ -57,6 +60,11 @@ const router = createRouter({
       path: '/',
       name: 'landing',
       component: LandingPageView,
+    },
+    {
+      path: '/corporate-training',
+      name: 'corporate-training',
+      component: CorporateTrainingView,
     },
 
     {
@@ -104,6 +112,12 @@ const router = createRouter({
           path: 'bundles',
           name: 'purchase-bundle',
           component: PurchaseBundleView,
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'corporate-training',
+          name: 'dashboard-corporate-training',
+          component: CorporateTrainingView,
           meta: { requiresAuth: true },
         },
         {
@@ -186,7 +200,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: AdminLayout,
-      meta: { requiresAuth: true, requiresRole: 'admin' },
+      meta: { requiresAuth: true, requiresAdminArea: true },
       children: [
         {
           path: '',
@@ -213,6 +227,8 @@ const router = createRouter({
           component: AdminLanguagesView,
         },
         { path: 'bundles', name: 'admin-bundles', component: AdminBundlesView },
+        { path: 'corporate-enquiries', name: 'admin-corporate-enquiries', component: AdminCorporateEnquiriesView },
+        { path: 'requests', name: 'admin-requests', component: AdminRequestsView },
         { path: 'payouts', name: 'admin-payouts', component: AdminPayoutsView },
         { path: 'reports', name: 'admin-reports', component: AdminReportsView },
         { path: 'bookings', name: 'admin-bookings', component: AdminBookingsView },
@@ -262,29 +278,71 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  if (isAuthenticated && to.meta.requiresRole && authStore.user?.role !== to.meta.requiresRole) {
-    console.log('Role check failed:', authStore.user?.role, 'Required:', to.meta.requiresRole)
+  const roleOk =
+    !to.meta.requiresRole ||
+    authStore.user?.role === to.meta.requiresRole ||
+    (to.meta.requiresAdminArea && isAdminArea(authStore.user?.role))
+
+  const adminAreaOk = !to.meta.requiresAdminArea || isAdminArea(authStore.user?.role)
+
+  if (isAuthenticated && (!roleOk || !adminAreaOk)) {
+    console.log('Role check failed:', authStore.user?.role)
     if (!authStore.user || !authStore.user.role) {
-      console.log('No user or role, redirecting to login')
       next({ name: 'login' })
     } else {
       switch (authStore.user.role) {
         case 'student':
-          console.log('Redirecting to home: User is student')
           next({ name: 'home' })
           break
         case 'teacher':
-          console.log('Redirecting to teacher dashboard: User is teacher')
           next({ path: '/teacher' })
           break
         case 'admin':
-          console.log('Redirecting to admin dashboard: User is admin')
+        case 'coach':
           next({ path: '/admin' })
           break
         default:
-          console.log('Unknown role, redirecting to login')
           next({ name: 'login' })
       }
+    }
+  } else if (
+    isAuthenticated &&
+    isAdminArea(authStore.user?.role) &&
+    to.path.startsWith('/admin')
+  ) {
+    // Enforce per-admin section permissions.
+    const sectionByPath: Record<string, string> = {
+      'dashboard': 'dashboard',
+      'users': 'users',
+      'teacher-applications': 'teacher-applications',
+      'bookings': 'bookings',
+      'languages': 'languages',
+      'bundles': 'bundles',
+      'corporate-enquiries': 'corporate-enquiries',
+      'requests': 'requests',
+      'exams': 'exams',
+      'payouts': 'payouts',
+      'refunds': 'refunds',
+      'payments': 'payments',
+      'reviews': 'reviews',
+      'reports': 'reports',
+      'library': 'library',
+      'audit-log': 'audit-log',
+    }
+    const allowed = adminAllowedSections(authStore.user)
+    const segment = to.path.replace(/^\/admin\/?/, '').split('/')[0] || 'dashboard'
+    const section = sectionByPath[segment]
+
+    if (section && !allowed.includes(section)) {
+      const firstAllowedPath = Object.keys(sectionByPath).find(
+        (seg) => allowed.includes(sectionByPath[seg] as string),
+      )
+      console.log('Admin section not permitted:', section, '→ redirecting')
+      // Settings (personal profile) is always available, so it is a safe
+      // landing spot for a coach with no other granted sections.
+      next(firstAllowedPath ? `/admin/${firstAllowedPath}` : '/admin/settings')
+    } else {
+      next()
     }
   } else {
     console.log('Navigation allowed to:', to.path)

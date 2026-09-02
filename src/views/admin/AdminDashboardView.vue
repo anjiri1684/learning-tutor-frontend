@@ -1,6 +1,7 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { RouterLink } from 'vue-router';
 import api from '@/services/api';
 
 const dashboardData = ref<any>(null);
@@ -18,6 +19,16 @@ onMounted(async () => {
 });
 
 const formatDate = (dateString: string) => new Date(dateString).toLocaleString();
+
+const actionItems = computed(() => {
+  const d = dashboardData.value;
+  if (!d) return [];
+  return [
+    { label: 'New contact requests', count: d.pending_contact_requests || 0, to: '/admin/requests' },
+    { label: 'New corporate enquiries', count: d.pending_corporate_enquiries || 0, to: '/admin/corporate-enquiries' },
+    { label: 'Pending teacher applications', count: d.pending_teacher_applications || 0, to: '/admin/teacher-applications' },
+  ].filter((i) => i.count > 0);
+});
 
 // UI Helper for status badges
 const getStatusClass = (status: string) => {
@@ -86,6 +97,18 @@ const getStatusClass = (status: string) => {
             <h3 class="font-medium text-gray-400 text-sm uppercase tracking-wide">Bookings (30 Days)</h3>
             <p class="mt-2 text-3xl font-bold text-white group-hover:text-indigo-400 transition-colors">{{ dashboardData.bookings_last_30_days }}</p>
           </div>
+        </div>
+
+        <div v-if="actionItems.length > 0" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <RouterLink
+            v-for="item in actionItems"
+            :key="item.to"
+            :to="item.to"
+            class="flex items-center justify-between bg-purple-900/20 border border-purple-500/30 rounded-2xl px-5 py-4 hover:bg-purple-900/30 transition-colors"
+          >
+            <span class="text-sm font-medium text-purple-100">{{ item.label }}</span>
+            <span class="ml-3 inline-flex items-center justify-center rounded-full bg-purple-600 text-white text-sm font-bold h-7 min-w-7 px-2">{{ item.count }}</span>
+          </RouterLink>
         </div>
 
         <div class="bg-gray-900/60 backdrop-blur-md rounded-2xl shadow-xl border border-white/10 overflow-hidden">
