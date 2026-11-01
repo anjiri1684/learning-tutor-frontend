@@ -270,6 +270,7 @@ router.beforeEach(async (to, from, next) => {
     next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (to.meta.requiresAuth && isAuthenticated && !authStore.user) {
     console.log('User data not loaded, fetching user...')
+    authStore.setPendingPath(to.fullPath)
     try {
       await authStore.fetchUser()
       if (!authStore.user) {
@@ -281,6 +282,8 @@ router.beforeEach(async (to, from, next) => {
       console.log('Error fetching user, redirecting to login:', error)
       next({ name: 'login', query: { redirect: to.fullPath } })
       return
+    } finally {
+      authStore.setPendingPath(null)
     }
   }
 

@@ -1,15 +1,17 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { useCurrencyStore } from '@/stores/currency';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
+import { toKES, formatPrice, isKES } from '@/utils/currency';
 
 interface CorporateTraining {
   ID: string;
   Name: string;
   Price: number;
+  Currency?: string;
   NumberOfClasses: number;
   description: string;
   language: { name: string };
@@ -31,8 +33,7 @@ const isLoading = ref(true);
 
 const isAuthenticated = computed(() => !!authStore.token);
 
-const getPriceInKES = (priceUSD: number) =>
-  currencyStore.usdToKesRate ? priceUSD * currencyStore.usdToKesRate : 0;
+const getPriceInKES = (price: number, currency?: string) => toKES(price, currency, currencyStore.usdToKesRate);
 
 onMounted(async () => {
   try {
@@ -58,8 +59,14 @@ const isSubmitting = ref(false);
 const message = ref({ type: '', text: '' });
 
 const selectedPriceKES = computed(() =>
-  selectedTraining.value ? getPriceInKES(selectedTraining.value.Price) : 0,
+  selectedTraining.value ? getPriceInKES(selectedTraining.value.Price, selectedTraining.value.Currency) : 0,
 );
+
+const resetOnRestore = (e: PageTransitionEvent) => {
+  if (e.persisted) isSubmitting.value = false;
+};
+onMounted(() => window.addEventListener('pageshow', resetOnRestore));
+onUnmounted(() => window.removeEventListener('pageshow', resetOnRestore));
 
 const openPaymentModal = (training: CorporateTraining) => {
   if (!isAuthenticated.value) {
@@ -209,11 +216,11 @@ const benefits = [
 
           <div class="my-6 flex-grow border-t border-b border-white/5 py-6">
             <div class="flex items-baseline">
-              <span class="text-4xl font-bold text-white">${{ t.Price.toFixed(2) }}</span>
+              <span class="text-4xl font-bold text-white">{{ formatPrice(t.Price, t.Currency) }}</span>
               <span class="text-gray-400 ml-2">USD</span>
             </div>
-            <p v-if="getPriceInKES(t.Price) > 0" class="text-sm text-gray-500 mt-1 font-mono">
-              &#8776; KES {{ getPriceInKES(t.Price).toFixed(2) }}
+            <p v-if="!isKES(t.Currency) && getPriceInKES(t.Price, t.Currency) > 0" class="text-sm text-gray-500 mt-1 font-mono">
+              &#8776; KES {{ getPriceInKES(t.Price, t.Currency).toFixed(2) }}
             </p>
             <div class="mt-4 flex items-center gap-2 text-gray-300">
               <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

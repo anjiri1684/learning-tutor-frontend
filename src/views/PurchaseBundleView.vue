@@ -1,15 +1,17 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCurrencyStore } from '@/stores/currency';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
+import { toKES, formatPrice, isKES } from '@/utils/currency';
 
 interface Bundle {
   ID: string;
   Name: string;
   Price: number;
+  Currency?: string;
   NumberOfClasses: number;
   language: {
     name: string;
@@ -28,12 +30,15 @@ const router = useRouter();
 const currencyStore = useCurrencyStore();
 
 
-const selectedBundlePriceKES = computed(() => {
-  if (selectedBundle.value && currencyStore.usdToKesRate) {
-    return selectedBundle.value.Price * currencyStore.usdToKesRate;
-  }
-  return 0;
-});
+const selectedBundlePriceKES = computed(() =>
+  selectedBundle.value ? toKES(selectedBundle.value.Price, selectedBundle.value.Currency, currencyStore.usdToKesRate) : 0,
+);
+
+const resetOnRestore = (e: PageTransitionEvent) => {
+  if (e.persisted) isSubmitting.value = false;
+};
+onMounted(() => window.addEventListener('pageshow', resetOnRestore));
+onUnmounted(() => window.removeEventListener('pageshow', resetOnRestore));
 
 onMounted(async () => {
   try {
@@ -73,7 +78,7 @@ const handleMpesaPurchase = async () => {
     message.value = { type: 'success', text: response.data.customer_message || 'Request sent! Check your phone to complete payment.' };
     setTimeout(() => {
       closePaymentModal();
-      router.push('/my-bundles');
+      router.push('/dashboard/my-bundles');
     }, 4000);
   } catch (error: any) {
     message.value = { type: 'error', text: error.response?.data?.error || 'M-Pesa purchase failed.' };
@@ -112,12 +117,7 @@ const handlePaystackPayment = async () => {
   }
 };
 
-const getPriceInKES = (priceUSD: number) => {
-  if (currencyStore.usdToKesRate) {
-    return priceUSD * currencyStore.usdToKesRate;
-  }
-  return 0;
-};
+const getPriceInKES = (price: number, currency?: string) => toKES(price, currency, currencyStore.usdToKesRate);
 </script>
 
 <template>
@@ -153,11 +153,11 @@ const getPriceInKES = (priceUSD: number) => {
 
           <div class="my-6 flex-grow border-t border-b border-white/5 py-6">
             <div class="flex items-baseline">
-               <span class="text-4xl font-bold text-white">${{ bundle.Price.toFixed(2) }}</span>
+               <span class="text-4xl font-bold text-white">{{ formatPrice(bundle.Price, bundle.Currency) }}</span>
                <span class="text-gray-400 ml-2">USD</span>
             </div>
-            <p v-if="getPriceInKES(bundle.Price) > 0" class="text-sm text-gray-500 mt-1 font-mono">
-              ≈ KES {{ getPriceInKES(bundle.Price).toFixed(2) }}
+            <p v-if="!isKES(bundle.Currency) && getPriceInKES(bundle.Price, bundle.Currency) > 0" class="text-sm text-gray-500 mt-1 font-mono">
+              ≈ KES {{ getPriceInKES(bundle.Price, bundle.Currency).toFixed(2) }}
             </p>
             <div class="mt-4 flex items-center gap-2 text-gray-300">
                <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
