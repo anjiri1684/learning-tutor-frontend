@@ -1,15 +1,13 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useBookingStore } from '@/stores/booking';
 import { useCurrencyStore } from '@/stores/currency';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter, RouterLink } from 'vue-router';
-import api from '@/services/api';
 import { currentTimeZone } from '@/utils/datetime';
+import { toKES, formatPrice, isKES } from '@/utils/currency';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const PaystackPop: any;
 
 const bookingStore = useBookingStore();
 const currencyStore = useCurrencyStore();
@@ -20,18 +18,24 @@ const mpesaPhoneNumber = ref('');
 const isSubmitting = ref(false);
 const message = ref({ type: '', text: '' });
 
-const price = computed(() => {
-  if (!bookingStore.selectedSlot || !bookingStore.languages) return 0;
-  const language = bookingStore.languages.find(lang => lang.ID === bookingStore.selectedSlot!.language_id);
-  return language ? language.PricePerSession : 0;
+const selectedLanguage = computed(() => {
+  if (!bookingStore.selectedSlot || !bookingStore.languages) return null;
+  return bookingStore.languages.find(lang => lang.ID === bookingStore.selectedSlot!.language_id) || null;
 });
 
-const priceInKES = computed(() => {
-  if (price.value && currencyStore.usdToKesRate) {
-    return price.value * currencyStore.usdToKesRate;
-  }
-  return 0;
-});
+const price = computed(() => selectedLanguage.value?.PricePerSession || 0);
+const priceCurrency = computed(() => selectedLanguage.value?.Currency || 'USD');
+
+// What M-Pesa/Paystack will actually charge (KES prices are not converted).
+const priceInKES = computed(() => toKES(price.value, priceCurrency.value, currencyStore.usdToKesRate));
+
+// Coming back from Paystack with the browser Back button can restore this page
+// from cache with the pay button still disabled.
+const resetOnRestore = (e: PageTransitionEvent) => {
+  if (e.persisted) isSubmitting.value = false;
+};
+onMounted(() => window.addEventListener('pageshow', resetOnRestore));
+onUnmounted(() => window.removeEventListener('pageshow', resetOnRestore));
 
 
 onMounted(() => {
@@ -50,7 +54,7 @@ const handleMpesaBooking = async () => {
     });
     if (response.success) {
       message.value = { type: 'success', text: response.data.customer_message || 'Request sent! Check your phone to complete payment.' };
-      setTimeout(() => router.push('/my-classes'), 4000);
+      setTimeout(() => router.push('/dashboard/my-classes'), 4000);
     } else {
       throw new Error(response.message);
     }
@@ -78,33 +82,13 @@ const handlePaystackPayment = async () => {
     if (!bookingResponse.success) {
       throw new Error(bookingResponse.message || 'Could not create booking record.');
     }
-    const paymentId = bookingResponse.data.payment_id;
-
-    const handler = PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-      email: authStore.user.email,
-      amount: Math.round(priceInKES.value * 100),
-      currency: 'KES',
-      ref: paymentId,
-      onSuccess: async function(response: { reference: string }) {
-        message.value = { type: 'info', text: 'Verifying payment...' };
-        try {
-          await api.post('/payments/paystack/verify', { reference: response.reference });
-          message.value = { type: 'success', text: 'Booking successful! Your class is confirmed.' };
-          setTimeout(() => router.push('/my-classes'), 3000);
-        } catch (error) {
-          console.error('Failed to verify payment:', error);
-          message.value = { type: 'error', text: 'Failed to verify payment.' };
-        } finally {
-          isSubmitting.value = false;
-        }
-      },
-      onClose: () => {
-        if (!isSubmitting.value) return;
-        isSubmitting.value = false;
-      },
-    });
-    handler.openIframe();
+    const authUrl = bookingResponse.data.authorization_url;
+    if (!authUrl) {
+      throw new Error('Paystack checkout link was not returned.');
+    }
+    message.value = { type: 'info', text: 'Redirecting to Paystack...' };
+    // Hosted checkout: Paystack returns the user to /dashboard/payment/callback.
+    window.location.href = authUrl;
   } catch (error: any) {
     message.value = { type: 'error', text: error.message || 'Could not initiate Paystack transaction.' };
     isSubmitting.value = false;
@@ -159,8 +143,8 @@ const displayTimeZone = computed(() => currentTimeZone(authStore.user?.time_zone
 
            <div class="sm:w-1/4 flex flex-col justify-center items-start sm:items-center sm:pl-8">
               <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Price</p>
-              <p class="text-3xl font-bold text-purple-400">${{ price.toFixed(2) }}</p>
-              <p v-if="priceInKES > 0" class="text-xs text-gray-500 mt-1 font-mono">~ KES {{ priceInKES.toFixed(2) }}</p>
+              <p class="text-3xl font-bold text-purple-400">{{ formatPrice(price, priceCurrency) }}</p>
+              <p v-if="priceInKES > 0 && !isKES(priceCurrency)" class="text-xs text-gray-500 mt-1 font-mono">~ KES {{ priceInKES.toFixed(2) }}</p>
            </div>
         </div>
       </div>

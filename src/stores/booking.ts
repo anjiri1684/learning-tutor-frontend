@@ -19,6 +19,7 @@ interface Language {
   ID: string
   Name: string
   PricePerSession: number
+  Currency?: string
 }
 
 export const useBookingStore = defineStore('booking', () => {

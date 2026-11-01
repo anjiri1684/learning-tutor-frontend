@@ -113,7 +113,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('Fetched user:', response.data)
     } catch (error) {
       console.error('Failed to fetch user:', error)
-      logout() 
+      logout({ keepRedirect: true })
     }
   }
 
@@ -172,7 +172,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const logout = () => {
+  // Set by the router guard while it is checking a navigation, so a session
+  // expiry during that check returns the user to where they were going (e.g.
+  // the Paystack callback page with its ?reference=) instead of the old page.
+  let pendingPath: string | null = null
+  const setPendingPath = (path: string | null) => {
+    pendingPath = path
+  }
+
+  // keepRedirect: true when the session expired (401), so after logging in the
+  // user lands back on the page they were on. A user-initiated logout passes
+  // nothing and goes to a plain /login.
+  const logout = (opts: { keepRedirect?: boolean } = {}) => {
     token.value = null
     user.value = null
     localStorage.removeItem('token')
@@ -180,7 +191,19 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('impersonator_token')
     localStorage.removeItem('impersonator_user')
     isImpersonating.value = false
-    router.push('/login')
+
+    const current = router.currentRoute.value
+    // Already on the login page (e.g. a wrong password returns 401): stay put
+    // so its ?redirect= (such as the Paystack callback) is kept.
+    if (current.name === 'login') return
+
+    const redirect =
+      pendingPath ?? (current.meta.requiresAuth ? current.fullPath : null)
+    if (opts.keepRedirect && redirect) {
+      router.push({ name: 'login', query: { redirect } })
+    } else {
+      router.push('/login')
+    }
   }
 
   const startImpersonation = async (impersonationToken: string, targetUser: User) => {
@@ -232,6 +255,7 @@ export const useAuthStore = defineStore('auth', () => {
     isImpersonating,
     login,
     logout,
+    setPendingPath,
     fetchUser,
     register,
     handleForgotPassword,
