@@ -193,9 +193,13 @@ export const useAuthStore = defineStore('auth', () => {
     isImpersonating.value = false
 
     const current = router.currentRoute.value
+    // Already on the login page (e.g. a wrong password returns 401): stay put
+    // so its ?redirect= (such as the Paystack callback) is kept.
+    if (current.name === 'login') return
+
     const redirect =
       pendingPath ?? (current.meta.requiresAuth ? current.fullPath : null)
-    if (opts.keepRedirect && redirect && current.name !== 'login') {
+    if (opts.keepRedirect && redirect) {
       router.push({ name: 'login', query: { redirect } })
     } else {
       router.push('/login')

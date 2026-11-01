@@ -217,7 +217,6 @@ const benefits = [
           <div class="my-6 flex-grow border-t border-b border-white/5 py-6">
             <div class="flex items-baseline">
               <span class="text-4xl font-bold text-white">{{ formatPrice(t.Price, t.Currency) }}</span>
-              <span class="text-gray-400 ml-2">USD</span>
             </div>
             <p v-if="!isKES(t.Currency) && getPriceInKES(t.Price, t.Currency) > 0" class="text-sm text-gray-500 mt-1 font-mono">
               &#8776; KES {{ getPriceInKES(t.Price, t.Currency).toFixed(2) }}

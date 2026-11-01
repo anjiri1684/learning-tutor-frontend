@@ -154,7 +154,6 @@ const getPriceInKES = (price: number, currency?: string) => toKES(price, currenc
           <div class="my-6 flex-grow border-t border-b border-white/5 py-6">
             <div class="flex items-baseline">
                <span class="text-4xl font-bold text-white">{{ formatPrice(bundle.Price, bundle.Currency) }}</span>
-               <span class="text-gray-400 ml-2">USD</span>
             </div>
             <p v-if="!isKES(bundle.Currency) && getPriceInKES(bundle.Price, bundle.Currency) > 0" class="text-sm text-gray-500 mt-1 font-mono">
               ≈ KES {{ getPriceInKES(bundle.Price, bundle.Currency).toFixed(2) }}
