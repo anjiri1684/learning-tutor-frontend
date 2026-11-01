@@ -5,11 +5,8 @@ import { useBookingStore } from '@/stores/booking';
 import { useCurrencyStore } from '@/stores/currency';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter, RouterLink } from 'vue-router';
-import api from '@/services/api';
 import { currentTimeZone } from '@/utils/datetime';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const PaystackPop: any;
 
 const bookingStore = useBookingStore();
 const currencyStore = useCurrencyStore();
@@ -78,33 +75,13 @@ const handlePaystackPayment = async () => {
     if (!bookingResponse.success) {
       throw new Error(bookingResponse.message || 'Could not create booking record.');
     }
-    const paymentId = bookingResponse.data.payment_id;
-
-    const handler = PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-      email: authStore.user.email,
-      amount: Math.round(priceInKES.value * 100),
-      currency: 'KES',
-      ref: paymentId,
-      onSuccess: async function(response: { reference: string }) {
-        message.value = { type: 'info', text: 'Verifying payment...' };
-        try {
-          await api.post('/payments/paystack/verify', { reference: response.reference });
-          message.value = { type: 'success', text: 'Booking successful! Your class is confirmed.' };
-          setTimeout(() => router.push('/my-classes'), 3000);
-        } catch (error) {
-          console.error('Failed to verify payment:', error);
-          message.value = { type: 'error', text: 'Failed to verify payment.' };
-        } finally {
-          isSubmitting.value = false;
-        }
-      },
-      onClose: () => {
-        if (!isSubmitting.value) return;
-        isSubmitting.value = false;
-      },
-    });
-    handler.openIframe();
+    const authUrl = bookingResponse.data.authorization_url;
+    if (!authUrl) {
+      throw new Error('Paystack checkout link was not returned.');
+    }
+    message.value = { type: 'info', text: 'Redirecting to Paystack...' };
+    // Hosted checkout: Paystack returns the user to /dashboard/payment/callback.
+    window.location.href = authUrl;
   } catch (error: any) {
     message.value = { type: 'error', text: error.message || 'Could not initiate Paystack transaction.' };
     isSubmitting.value = false;

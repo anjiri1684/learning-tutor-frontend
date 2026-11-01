@@ -20,8 +20,6 @@ interface Language {
   name: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const PaystackPop: any;
 
 const router = useRouter();
 const currencyStore = useCurrencyStore();
@@ -112,33 +110,13 @@ const handlePaystackPayment = async () => {
     const res = await api.post(`/bundles/${selectedTraining.value.ID}/purchase`, {
       payment_provider: 'paystack',
     });
-    const paymentId = res.data.payment_id;
-    const handler = PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-      email: authStore.user.email,
-      amount: Math.round(selectedPriceKES.value * 100),
-      currency: 'KES',
-      ref: paymentId,
-      onSuccess: async function (response: { reference: string }) {
-        message.value = { type: 'info', text: 'Verifying payment...' };
-        try {
-          await api.post('/payments/paystack/verify', { reference: response.reference });
-          message.value = { type: 'success', text: 'Purchase successful! Your training package is now active.' };
-          setTimeout(() => {
-            showPaymentModal.value = false;
-            router.push('/dashboard/my-bundles');
-          }, 3000);
-        } catch {
-          message.value = { type: 'error', text: 'Failed to verify payment.' };
-        } finally {
-          isSubmitting.value = false;
-        }
-      },
-      onClose: () => {
-        isSubmitting.value = false;
-      },
-    });
-    handler.openIframe();
+    const authUrl = res.data.authorization_url;
+    if (!authUrl) {
+      throw new Error('Paystack checkout link was not returned.');
+    }
+    message.value = { type: 'info', text: 'Redirecting to Paystack...' };
+    // Hosted checkout: Paystack returns the user to /dashboard/payment/callback.
+    window.location.href = authUrl;
   } catch (error: any) {
     message.value = { type: 'error', text: error.response?.data?.error || 'Could not initiate Paystack transaction.' };
     isSubmitting.value = false;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { useRouter, RouterLink } from 'vue-router';
+import { useRouter, useRoute, RouterLink } from 'vue-router';
 
 const email = ref('');
 const password = ref('');
@@ -10,6 +10,14 @@ const isLoading = ref(false);
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+
+// Only same-site paths ("/x", not "//evil.com") so ?redirect= can't be
+// used as an open redirect.
+const safeRedirect = (): string | null => {
+  const r = route.query.redirect;
+  return typeof r === 'string' && r.startsWith('/') && !r.startsWith('//') ? r : null;
+};
 
 const handleLogin = async () => {
   errorMessage.value = '';
@@ -23,7 +31,10 @@ const handleLogin = async () => {
   isLoading.value = false;
 
   if (result.success && result.redirectPath) {
-    router.push(result.redirectPath);
+    // Students go back to where they were (e.g. the Paystack callback);
+    // admins/teachers keep their role home.
+    const back = result.redirectPath === '/dashboard' ? safeRedirect() : null;
+    router.push(back || result.redirectPath);
   } else {
     errorMessage.value = 'Login failed. Please check your credentials.';
   }

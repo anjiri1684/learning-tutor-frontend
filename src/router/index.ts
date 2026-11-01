@@ -109,6 +109,12 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'payment/callback',
+          name: 'payment-callback',
+          component: () => import('@/views/PaymentCallbackView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'bundles',
           name: 'purchase-bundle',
           component: PurchaseBundleView,
@@ -261,19 +267,19 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     console.log('Redirecting to login: User not authenticated')
-    next({ name: 'login' })
+    next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (to.meta.requiresAuth && isAuthenticated && !authStore.user) {
     console.log('User data not loaded, fetching user...')
     try {
       await authStore.fetchUser()
       if (!authStore.user) {
         console.log('User fetch failed, redirecting to login')
-        next({ name: 'login' })
+        next({ name: 'login', query: { redirect: to.fullPath } })
         return
       }
     } catch (error) {
       console.log('Error fetching user, redirecting to login:', error)
-      next({ name: 'login' })
+      next({ name: 'login', query: { redirect: to.fullPath } })
       return
     }
   }
